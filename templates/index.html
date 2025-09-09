@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Parking Management System</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --primary-color: #2563eb;
+        --secondary-color: #1e40af;
+        --success-color: #059669;
+        --warning-color: #d97706;
+        --danger-color: #dc2626;
+        --background-color: #f8fafc;
+        --card-background: #ffffff;
+        --text-primary: #1e293b;
+        --text-secondary: #64748b;
+        --border-radius: 12px;
+        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: 'Inter', sans-serif;
+      }
+
+      body {
+        background-color: var(--background-color);
+        color: var(--text-primary);
+        line-height: 1.6;
+        min-height: 100vh;
+      }
+
+      .container {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 1rem;
+        width: 100%;
+      }
+
+      .header {
+        background-color: var(--card-background);
+        padding: 1.25rem;
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+
+      .header-left {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex: 1;
+        min-width: 200px;
+      }
+
+      .university-logo {
+        width: 60px;
+        height: 60px;
+        object-fit: contain;
+        border-radius: 8px;
+        background-color: #f8fafc;
+        padding: 4px;
+        border: 2px solid #e2e8f0;
+        flex-shrink: 0;
+      }
+
+      .header-text {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+
+      .header h1 {
+        color: var(--text-primary);
+        font-size: clamp(1.25rem, 4vw, 1.5rem);
+        font-weight: 600;
+        margin: 0;
+        line-height: 1.2;
+      }
+
+      .university-name {
+        color: var(--primary-color);
+        font-size: clamp(0.875rem, 2.5vw, 1rem);
+        font-weight: 500;
+        margin: 0;
+        font-style: italic;
+      }
+
+      .header .status {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--success-color);
+        font-weight: 500;
+        font-size: clamp(0.875rem, 2.5vw, 1rem);
+      }
+
+      .header .status i {
+        font-size: 0.875rem;
+      }
+
+      .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .vehicle-card {
+        background: var(--card-background);
+        padding: 1.5rem;
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-sm);
+        transition: all 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+      }
+
+      .vehicle-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+      }
+
+      .card-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .vehicle-card .icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      .vehicle-card .icon i {
+        font-size: 1.5rem;
+        color: white;
+      }
+
+      .vehicle-card .icon.cars { background-color: var(--primary-color); }
+      .vehicle-card .icon.bikes { background-color: var(--success-color); }
+
+      .card-header h3 {
+        font-size: clamp(1rem, 3vw, 1.25rem);
+        color: var(--text-primary);
+        font-weight: 600;
+        flex: 1;
+      }
+
+      .card-stats {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      .stat-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #e2e8f0;
+      }
+
+      .stat-row:last-child {
+        border-bottom: 2px solid var(--primary-color);
+        font-weight: 600;
+      }
+
+      .stat-label {
+        font-size: clamp(0.875rem, 2.5vw, 1rem);
+        color: var(--text-secondary);
+        font-weight: 500;
+      }
+
+      .stat-value {
+        font-size: clamp(0.875rem, 2.5vw, 1rem);
+        color: var(--text-primary);
+        font-weight: 600;
+      }
+
+      .card-progress {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .progress-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: clamp(0.875rem, 2.5vw, 1rem);
+        font-weight: 500;
+        color: var(--text-primary);
+      }
+
+      .progress-fill.car-progress {
+        background: linear-gradient(90deg, var(--primary-color), #3b82f6);
+      }
+
+      .progress-fill.bike-progress {
+        background: linear-gradient(90deg, var(--success-color), #10b981);
+      }
+
+      .capacity-container {
+        background: var(--card-background);
+        padding: 1.25rem;
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 1.5rem;
+      }
+
+      .capacity-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .capacity-header span {
+        font-weight: 500;
+        color: var(--text-primary);
+        font-size: clamp(0.875rem, 2.5vw, 1rem);
+      }
+
+      .capacity-details {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        font-size: clamp(0.75rem, 2vw, 0.875rem);
+        color: var(--text-secondary);
+      }
+
+      .progress-bar {
+        width: 100%;
+        height: 10px;
+        background-color: #e2e8f0;
+        border-radius: 5px;
+        overflow: hidden;
+      }
+
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+        transition: width 0.3s ease;
+        border-radius: 5px;
+      }
+
+      .lot-full {
+        background-color: #fee2e2;
+        border-left: 4px solid var(--danger-color);
+        padding: 1rem;
+        margin: 1.5rem 0;
+        display: none;
+        border-radius: var(--border-radius);
+        color: var(--danger-color);
+        font-weight: 500;
+        font-size: clamp(0.875rem, 2.5vw, 1rem);
+      }
+
+      .lot-full i {
+        margin-right: 0.5rem;
+      }
+
+      .video-container {
+        background: var(--card-background);
+        padding: 1.25rem;
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .video-feed {
+        width: 100%;
+        max-width: 100%;
+        height: auto;
+        display: block;
+        border-radius: var(--border-radius);
+        aspect-ratio: 16/9;
+        object-fit: cover;
+        background-color: #f1f5f9;
+      }
+
+      /* Mobile First Responsive Design */
+      @media (max-width: 480px) {
+        .container {
+          padding: 0.75rem;
+        }
+
+        .header {
+          padding: 1rem;
+          text-align: center;
+          flex-direction: column;
+        }
+
+        .header-left {
+          flex-direction: column;
+          text-align: center;
+          gap: 0.75rem;
+        }
+
+        .university-logo {
+          width: 50px;
+          height: 50px;
+        }
+
+        .dashboard-grid {
+          grid-template-columns: 1fr;
+          gap: 1rem;
+        }
+
+        .vehicle-card {
+          padding: 1.25rem;
+        }
+
+        .card-header {
+          gap: 0.75rem;
+        }
+
+        .vehicle-card .icon {
+          width: 40px;
+          height: 40px;
+        }
+
+        .vehicle-card .icon i {
+          font-size: 1.25rem;
+        }
+
+        .card-stats {
+          gap: 0.5rem;
+        }
+
+        .stat-row {
+          padding: 0.375rem 0;
+        }
+
+        .capacity-container,
+        .video-container {
+          padding: 1rem;
+        }
+
+        .capacity-header {
+          text-align: center;
+          flex-direction: column;
+          gap: 0.25rem;
+        }
+
+        .capacity-details {
+          justify-content: center;
+          text-align: center;
+          flex-direction: column;
+          gap: 0.25rem;
+        }
+      }
+
+      @media (min-width: 481px) and (max-width: 768px) {
+        .container {
+          padding: 0.875rem;
+        }
+
+        .dashboard-grid {
+          grid-template-columns: 1fr;
+          gap: 1.25rem;
+        }
+
+        .header h1 {
+          font-size: 1.375rem;
+        }
+      }
+
+      @media (min-width: 769px) and (max-width: 1024px) {
+        .container {
+          padding: 1.25rem;
+        }
+
+        .dashboard-grid {
+          grid-template-columns: repeat(2, 1fr);
+          gap: 1.5rem;
+        }
+      }
+
+      @media (min-width: 1025px) {
+        .container {
+          padding: 2rem;
+        }
+
+        .dashboard-grid {
+          gap: 2rem;
+        }
+
+        .capacity-container,
+        .video-container {
+          padding: 1.5rem;
+        }
+      }
+
+      /* Landscape orientation adjustments */
+      @media (orientation: landscape) and (max-height: 500px) {
+        .container {
+          padding: 0.5rem;
+        }
+
+        .header {
+          padding: 0.75rem;
+        }
+
+        .header-left {
+          gap: 0.5rem;
+        }
+
+        .university-logo {
+          width: 40px;
+          height: 40px;
+        }
+
+        .vehicle-card {
+          min-height: 80px;
+          padding: 1rem;
+        }
+
+        .video-feed {
+          max-height: 250px;
+        }
+      }
+
+      /* High DPI displays */
+      @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+        .vehicle-card .icon i {
+          transform: scale(0.95);
+        }
+      }
+
+      /* Dark mode support */
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --background-color: #0f172a;
+          --card-background: #1e293b;
+          --text-primary: #f8fafc;
+          --text-secondary: #94a3b8;
+        }
+
+        .progress-bar {
+          background-color: #334155;
+        }
+
+        .lot-full {
+          background-color: #3c2626;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="header-left">
+          <img src="static\culogo.png" alt="Christ University Logo" class="university-logo">
+          <div class="header-text">
+            <h1>R&D Block Parking<h1>
+            <p class="university-name">Christ (Deemed to be University)</p>
+          </div>
+        </div>
+        <div class="status">
+          <i class="fas fa-circle"></i>
+          System Active
+        </div>
+      </div>
+
+      <div class="dashboard-grid">
+        <div class="vehicle-card">
+          <div class="card-header">
+            <div class="icon cars">
+              <i class="fas fa-car"></i>
+            </div>
+            <h3>Four Wheeler</h3>
+          </div>
+          <div class="card-stats">
+            <div class="stat-row">
+              <span class="stat-label">Filled Spots:</span>
+              <span class="stat-value" id="car-filled">0</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Free Spots:</span>
+              <span class="stat-value" id="car-free">40</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Total Spots:</span>
+              <span class="stat-value">40</span>
+            </div>
+          </div>
+          <div class="card-progress">
+            <div class="progress-header">
+              <span>Occupancy</span>
+              <span id="car-percentage">0%</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill car-progress" id="car-progress-bar"></div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="vehicle-card">
+          <div class="card-header">
+            <div class="icon bikes">
+              <i class="fas fa-motorcycle"></i>
+            </div>
+            <h3>Two Wheeler</h3>
+          </div>
+          <div class="card-stats">
+            <div class="stat-row">
+              <span class="stat-label">Filled Spots:</span>
+              <span class="stat-value" id="bike-filled">0</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Free Spots:</span>
+              <span class="stat-value" id="bike-free">300</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Total Spots:</span>
+              <span class="stat-value">300</span>
+            </div>
+          </div>
+          <div class="card-progress">
+            <div class="progress-header">
+              <span>Occupancy</span>
+              <span id="bike-percentage">0%</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill bike-progress" id="bike-progress-bar"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="capacity-container">
+        <div class="capacity-header">
+          <span>Lot Capacity Usage</span>
+          <span id="capacity-percentage">0%</span>
+        </div>
+        <div class="capacity-details">
+          <span>Car Spots: <span id="car-capacity">0/40</span></span>
+          <span>Bike Spots: <span id="bike-capacity">0/300</span></span>
+          <span>Total: <span id="total-capacity">0/340</span></span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="capacity-bar"></div>
+        </div>
+      </div>
+
+      <div class="lot-full" id="lot-full-alert">
+        <i class="fas fa-exclamation-circle"></i>
+        Parking lot is full!
+      </div>
+
+      <div class="video-container">
+        <img
+          src="{{ url_for('video_feed') }}"
+          class="video-feed"
+          alt="Video Feed"
+          loading="lazy"
+        />
+      </div>
+    </div>
+
+    <script>
+      function updateDashboard() {
+        $.ajax({
+          url: "/get_counts",
+          method: "GET",
+          success: function (data) {
+            const CAR_CAPACITY = 40;
+            const BIKE_CAPACITY = 300;
+            const TOTAL_CAPACITY = CAR_CAPACITY + BIKE_CAPACITY;
+
+            const cars = Math.min(data.cars, CAR_CAPACITY);
+            const bikes = Math.min(data.bikes, BIKE_CAPACITY);
+            const filledSpaces = cars + bikes;
+            const freeSpaces = TOTAL_CAPACITY - filledSpaces;
+
+            // Update car card
+            const carFreeSpots = CAR_CAPACITY - cars;
+            $("#car-filled").text(cars);
+            $("#car-free").text(carFreeSpots);
+            
+            const carPercentage = (cars / CAR_CAPACITY) * 100;
+            $("#car-percentage").text(Math.round(carPercentage) + "%");
+            $("#car-progress-bar").css("width", carPercentage + "%");
+
+            // Update bike card
+            const bikeFreeSpots = BIKE_CAPACITY - bikes;
+            $("#bike-filled").text(bikes);
+            $("#bike-free").text(bikeFreeSpots);
+            
+            const bikePercentage = (bikes / BIKE_CAPACITY) * 100;
+            $("#bike-percentage").text(Math.round(bikePercentage) + "%");
+            $("#bike-progress-bar").css("width", bikePercentage + "%");
+
+            // Update overall capacity details
+            $("#car-capacity").text(`${cars}/${CAR_CAPACITY}`);
+            $("#bike-capacity").text(`${bikes}/${BIKE_CAPACITY}`);
+            $("#total-capacity").text(`${filledSpaces}/${TOTAL_CAPACITY}`);
+
+            // Update overall progress bar
+            const totalPercentage = (filledSpaces / TOTAL_CAPACITY) * 100;
+            $("#capacity-percentage").text(Math.round(totalPercentage) + "%");
+            $("#capacity-bar").css("width", totalPercentage + "%");
+
+            // Show/hide full lot alert
+            const isCarLotFull = cars >= CAR_CAPACITY;
+            const isBikeLotFull = bikes >= BIKE_CAPACITY;
+            const isTotalLotFull = filledSpaces >= TOTAL_CAPACITY;
+            
+            $("#lot-full-alert").toggle(isTotalLotFull || isCarLotFull || isBikeLotFull);
+            
+            if (isTotalLotFull) {
+              $("#lot-full-alert").html('<i class="fas fa-exclamation-circle"></i> Parking lot is completely full!');
+            } else if (isCarLotFull && isBikeLotFull) {
+              $("#lot-full-alert").html('<i class="fas fa-exclamation-circle"></i> Both car and bike sections are full!');
+            } else if (isCarLotFull) {
+              $("#lot-full-alert").html('<i class="fas fa-exclamation-circle"></i> Four wheeler parking section is full!');
+            } else if (isBikeLotFull) {
+              $("#lot-full-alert").html('<i class="fas fa-exclamation-circle"></i> Two wheeler parking section is full!');
+            }
+          },
+          error: function () {
+            console.log("Error fetching counts");
+          },
+        });
+      }
+
+      // Update dashboard every second
+      setInterval(updateDashboard, 1000);
+      
+      // Initial load
+      updateDashboard();
+
+      // Handle window resize for better responsiveness
+      let resizeTimer;
+      window.addEventListener('resize', function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function() {
+          // Force a repaint for smooth transitions
+          document.body.style.display = 'none';
+          document.body.offsetHeight;
+          document.body.style.display = '';
+        }, 250);
+      });
+    </script>
+  </body>
+</html>
