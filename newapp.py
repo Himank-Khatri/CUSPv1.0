@@ -5,7 +5,7 @@ import threading
 import os
 import time
 
-from config.config import settings
+from config import settings
 from core.optimized_processor import OptimizedParkingProcessor
 
 # Ensure logs directory exists

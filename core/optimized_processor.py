@@ -9,7 +9,7 @@ import psutil
 import gc
 
 from sort.sort import Sort
-from config.config import settings
+from config import settings
 from core.optimized_detector import OptimizedVehicleDetector
 
 logger = logging.getLogger(__name__)
