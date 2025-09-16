@@ -18,7 +18,7 @@ class OptimizedParkingProcessor:
     def __init__(self):
         self.detector = OptimizedVehicleDetector(
             model_path=settings.get('vehicle_model_path'),
-            device='auto'
+            device='cpu'
         )
         
         self.tracker = Sort(
@@ -67,7 +67,21 @@ class OptimizedParkingProcessor:
         }
         self.last_stats_update = time.time()
         
-        self.processing_thread = None
+        self.processing_thread = None        # for track_id, track_info in self.track_history.items():
+        #     if len(track_info) > 0:
+        #         # Get the latest position
+        #         latest_y = track_info[-1]
+        #         latest_x = frame_width // 2  # Approximate x position
+                
+        #         # Draw tracking point
+        #         cv2.circle(frame, (latest_x, latest_y), 5, (0, 255, 255), -1)
+                
+        #         # Draw vehicle ID and class
+        #         vehicle_class = self.track_class_labels.get(track_id, "Unknown")
+        #         direction = self.vehicle_directions.get(track_id, "Unknown")
+        #         text = f"ID:{track_id} C:{vehicle_class} D:{direction}"
+        #         cv2.putText(frame, text, (latest_x + 10, latest_y - 10), 
+        #                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
         self.shutdown_event = threading.Event()
         
         logger.info("OptimizedParkingProcessor initialized")
@@ -460,21 +474,21 @@ class OptimizedParkingProcessor:
         cv2.line(frame, (0, midline), (frame_width, midline), (255, 0, 0), 2)
         
         # Draw tracking boxes and vehicle information
-        for track_id, track_info in self.track_history.items():
-            if len(track_info) > 0:
-                # Get the latest position
-                latest_y = track_info[-1]
-                latest_x = frame_width // 2  # Approximate x position
+        # for track_id, track_info in self.track_history.items():
+        #     if len(track_info) > 0:
+        #         # Get the latest position
+        #         latest_y = track_info[-1]
+        #         latest_x = frame_width // 2  # Approximate x position
                 
-                # Draw tracking point
-                cv2.circle(frame, (latest_x, latest_y), 5, (0, 255, 255), -1)
+        #         # Draw tracking point
+        #         cv2.circle(frame, (latest_x, latest_y), 5, (0, 255, 255), -1)
                 
-                # Draw vehicle ID and class
-                vehicle_class = self.track_class_labels.get(track_id, "Unknown")
-                direction = self.vehicle_directions.get(track_id, "Unknown")
-                text = f"ID:{track_id} C:{vehicle_class} D:{direction}"
-                cv2.putText(frame, text, (latest_x + 10, latest_y - 10), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+        #         # Draw vehicle ID and class
+        #         vehicle_class = self.track_class_labels.get(track_id, "Unknown")
+        #         direction = self.vehicle_directions.get(track_id, "Unknown")
+        #         text = f"ID:{track_id} C:{vehicle_class} D:{direction}"
+        #         cv2.putText(frame, text, (latest_x + 10, latest_y - 10), 
+        #                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
         
         # Draw counts
         cv2.putText(frame, f"Cars: {self.car_count}", (10, 30), 

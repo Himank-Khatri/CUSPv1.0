@@ -46,6 +46,8 @@ def video_feed():
                 yield (b'--frame\r\n'
                        b'Content-Type: image/jpeg\r\n\r\n' + frame_data + b'\r\n')
             # time.sleep(frame_delay)
+            else:
+                logger.info("Can't display frames because there is no frame data")
 
     return Response(generate_frames(), mimetype="multipart/x-mixed-replace; boundary=frame")
 
