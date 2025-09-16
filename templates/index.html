@@ -264,6 +264,17 @@
         overflow: hidden;
       }
 
+      .edit-icon {
+            cursor: pointer;
+            color: #90a4ae;
+            font-size: 0.9em;
+            transition: color 0.2s;
+        }
+
+        .edit-icon:hover {
+            color: #37474f;
+        }
+
       .progress-fill {
         height: 100%;
         background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
@@ -473,201 +484,262 @@
       }
     </style>
   </head>
-  <body>
+<body>
     <div class="container">
-      <div class="header">
-        <div class="header-left">
-          <img src="static\culogo.png" alt="Christ University Logo" class="university-logo">
-          <div class="header-text">
-            <h1>R&D Block Parking<h1>
-            <p class="university-name">Christ (Deemed to be University)</p>
-          </div>
+        <div class="header">
+            <div class="header-left">
+                <img src="static/culogo.png" alt="Christ University Logo" class="university-logo">
+                <div class="header-text">
+                    <h1>R&D Block Parking<h1>
+                    <p class="university-name">Christ (Deemed to be University)</p>
+                </div>
+            </div>
+            <div class="status" id="system-status">
+                <i class="fas fa-circle"></i>
+                System Active
+            </div>
         </div>
-        <div class="status">
-          <i class="fas fa-circle"></i>
-          System Active
-        </div>
-      </div>
 
-      <div class="dashboard-grid">
-        <div class="vehicle-card">
-          <div class="card-header">
-            <div class="icon cars">
-              <i class="fas fa-car"></i>
+        <div class="dashboard-grid">
+            <div class="vehicle-card">
+                <div class="card-header">
+                    <div class="icon cars">
+                        <i class="fas fa-car"></i>
+                    </div>
+                    <h3>Four Wheeler</h3>
+                </div>
+                <div class="card-stats">
+                    <div class="stat-row">
+                        <span class="stat-label">Filled Spots:</span>
+                        <div class="stat-value-container">
+                            <span class="stat-value" id="car-filled">0</span>
+                            <i class="fas fa-pencil-alt edit-icon" data-type="car"></i>
+                        </div>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Free Spots:</span>
+                        <span class="stat-value" id="car-free">40</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Total Spots:</span>
+                        <span class="stat-value">40</span>
+                    </div>
+                </div>
+                <div class="card-progress">
+                    <div class="progress-header">
+                        <span>Occupancy</span>
+                        <span id="car-percentage">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill car-progress" id="car-progress-bar"></div>
+                    </div>
+                </div>
             </div>
-            <h3>Four Wheeler</h3>
-          </div>
-          <div class="card-stats">
-            <div class="stat-row">
-              <span class="stat-label">Filled Spots:</span>
-              <span class="stat-value" id="car-filled">0</span>
+            
+            <div class="vehicle-card">
+                <div class="card-header">
+                    <div class="icon bikes">
+                        <i class="fas fa-motorcycle"></i>
+                    </div>
+                    <h3>Two Wheeler</h3>
+                </div>
+                <div class="card-stats">
+                    <div class="stat-row">
+                        <span class="stat-label">Filled Spots:</span>
+                        <div class="stat-value-container">
+                            <span class="stat-value" id="bike-filled">0</span>
+                            <i class="fas fa-pencil-alt edit-icon" data-type="bike"></i>
+                        </div>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Free Spots:</span>
+                        <span class="stat-value" id="bike-free">300</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Total Spots:</span>
+                        <span class="stat-value">300</span>
+                    </div>
+                </div>
+                <div class="card-progress">
+                    <div class="progress-header">
+                        <span>Occupancy</span>
+                        <span id="bike-percentage">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill bike-progress" id="bike-progress-bar"></div>
+                    </div>
+                </div>
             </div>
-            <div class="stat-row">
-              <span class="stat-label">Free Spots:</span>
-              <span class="stat-value" id="car-free">40</span>
+        </div>
+
+        <div class="capacity-container">
+            <div class="capacity-header">
+                <span>Lot Capacity Usage</span>
+                <span id="capacity-percentage">0%</span>
             </div>
-            <div class="stat-row">
-              <span class="stat-label">Total Spots:</span>
-              <span class="stat-value">40</span>
-            </div>
-          </div>
-          <div class="card-progress">
-            <div class="progress-header">
-              <span>Occupancy</span>
-              <span id="car-percentage">0%</span>
+            <div class="capacity-details">
+                <span>Car Spots: <span id="car-capacity">0/40</span></span>
+                <span>Bike Spots: <span id="bike-capacity">0/300</span></span>
+                <span>Total: <span id="total-capacity">0/340</span></span>
             </div>
             <div class="progress-bar">
-              <div class="progress-fill car-progress" id="car-progress-bar"></div>
+                <div class="progress-fill" id="capacity-bar"></div>
             </div>
-          </div>
         </div>
-        
-        <div class="vehicle-card">
-          <div class="card-header">
-            <div class="icon bikes">
-              <i class="fas fa-motorcycle"></i>
-            </div>
-            <h3>Two Wheeler</h3>
-          </div>
-          <div class="card-stats">
-            <div class="stat-row">
-              <span class="stat-label">Filled Spots:</span>
-              <span class="stat-value" id="bike-filled">0</span>
-            </div>
-            <div class="stat-row">
-              <span class="stat-label">Free Spots:</span>
-              <span class="stat-value" id="bike-free">300</span>
-            </div>
-            <div class="stat-row">
-              <span class="stat-label">Total Spots:</span>
-              <span class="stat-value">300</span>
-            </div>
-          </div>
-          <div class="card-progress">
-            <div class="progress-header">
-              <span>Occupancy</span>
-              <span id="bike-percentage">0%</span>
-            </div>
-            <div class="progress-bar">
-              <div class="progress-fill bike-progress" id="bike-progress-bar"></div>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <div class="capacity-container">
-        <div class="capacity-header">
-          <span>Lot Capacity Usage</span>
-          <span id="capacity-percentage">0%</span>
+        <div class="lot-full" id="lot-full-alert">
+            <i class="fas fa-exclamation-circle"></i>
+            Parking lot is full!
         </div>
-        <div class="capacity-details">
-          <span>Car Spots: <span id="car-capacity">0/40</span></span>
-          <span>Bike Spots: <span id="bike-capacity">0/300</span></span>
-          <span>Total: <span id="total-capacity">0/340</span></span>
-        </div>
-        <div class="progress-bar">
-          <div class="progress-fill" id="capacity-bar"></div>
-        </div>
-      </div>
 
-      <div class="lot-full" id="lot-full-alert">
-        <i class="fas fa-exclamation-circle"></i>
-        Parking lot is full!
-      </div>
-
-      <div class="video-container">
-        <img
-          src="{{ url_for('video_feed') }}"
-          class="video-feed"
-          alt="Video Feed"
-          loading="lazy"
-        />
-      </div>
+        <div class="video-container">
+            <img
+              src="{{ url_for('video_feed') }}"
+              class="video-feed"
+              alt="Video Feed"
+              loading="lazy"
+            />
+        </div>
     </div>
 
-    <script>
-      function updateDashboard() {
-        $.ajax({
-          url: "/get_counts",
-          method: "GET",
-          success: function (data) {
+<script>
+        $(document).ready(function() {
             const CAR_CAPACITY = 40;
             const BIKE_CAPACITY = 300;
             const TOTAL_CAPACITY = CAR_CAPACITY + BIKE_CAPACITY;
 
-            const cars = Math.min(data.cars, CAR_CAPACITY);
-            const bikes = Math.min(data.bikes, BIKE_CAPACITY);
-            const filledSpaces = cars + bikes;
-            const freeSpaces = TOTAL_CAPACITY - filledSpaces;
+            let isManualUpdateActive = false;
+            let manualUpdateTimer;
 
-            // Update car card
-            const carFreeSpots = CAR_CAPACITY - cars;
-            $("#car-filled").text(cars);
-            $("#car-free").text(carFreeSpots);
-            
-            const carPercentage = (cars / CAR_CAPACITY) * 100;
-            $("#car-percentage").text(Math.round(carPercentage) + "%");
-            $("#car-progress-bar").css("width", carPercentage + "%");
+            /**
+             * Central function to update all UI elements based on car and bike counts.
+             * @param {object} data - An object containing the counts, e.g., { cars: 10, bikes: 50 }.
+             */
+            function updateUI(data) {
+                const cars = Math.min(data.cars, CAR_CAPACITY);
+                const bikes = Math.min(data.bikes, BIKE_CAPACITY);
+                const filledSpaces = cars + bikes;
 
-            // Update bike card
-            const bikeFreeSpots = BIKE_CAPACITY - bikes;
-            $("#bike-filled").text(bikes);
-            $("#bike-free").text(bikeFreeSpots);
-            
-            const bikePercentage = (bikes / BIKE_CAPACITY) * 100;
-            $("#bike-percentage").text(Math.round(bikePercentage) + "%");
-            $("#bike-progress-bar").css("width", bikePercentage + "%");
+                // Update car card
+                const carFreeSpots = CAR_CAPACITY - cars;
+                $("#car-filled").text(cars);
+                $("#car-free").text(carFreeSpots);
+                const carPercentage = (cars / CAR_CAPACITY) * 100;
+                $("#car-percentage").text(Math.round(carPercentage) + "%");
+                $("#car-progress-bar").css("width", carPercentage + "%");
 
-            // Update overall capacity details
-            $("#car-capacity").text(`${cars}/${CAR_CAPACITY}`);
-            $("#bike-capacity").text(`${bikes}/${BIKE_CAPACITY}`);
-            $("#total-capacity").text(`${filledSpaces}/${TOTAL_CAPACITY}`);
+                // Update bike card
+                const bikeFreeSpots = BIKE_CAPACITY - bikes;
+                $("#bike-filled").text(bikes);
+                $("#bike-free").text(bikeFreeSpots);
+                const bikePercentage = (bikes / BIKE_CAPACITY) * 100;
+                $("#bike-percentage").text(Math.round(bikePercentage) + "%");
+                $("#bike-progress-bar").css("width", bikePercentage + "%");
 
-            // Update overall progress bar
-            const totalPercentage = (filledSpaces / TOTAL_CAPACITY) * 100;
-            $("#capacity-percentage").text(Math.round(totalPercentage) + "%");
-            $("#capacity-bar").css("width", totalPercentage + "%");
+                // Update overall capacity details
+                $("#car-capacity").text(`${cars}/${CAR_CAPACITY}`);
+                $("#bike-capacity").text(`${bikes}/${BIKE_CAPACITY}`);
+                $("#total-capacity").text(`${filledSpaces}/${TOTAL_CAPACITY}`);
 
-            // Show/hide full lot alert
-            const isCarLotFull = cars >= CAR_CAPACITY;
-            const isBikeLotFull = bikes >= BIKE_CAPACITY;
-            const isTotalLotFull = filledSpaces >= TOTAL_CAPACITY;
-            
-            $("#lot-full-alert").toggle(isTotalLotFull || isCarLotFull || isBikeLotFull);
-            
-            if (isTotalLotFull) {
-              $("#lot-full-alert").html('<i class="fas fa-exclamation-circle"></i> Parking lot is completely full!');
-            } else if (isCarLotFull && isBikeLotFull) {
-              $("#lot-full-alert").html('<i class="fas fa-exclamation-circle"></i> Both car and bike sections are full!');
-            } else if (isCarLotFull) {
-              $("#lot-full-alert").html('<i class="fas fa-exclamation-circle"></i> Four wheeler parking section is full!');
-            } else if (isBikeLotFull) {
-              $("#lot-full-alert").html('<i class="fas fa-exclamation-circle"></i> Two wheeler parking section is full!');
+                // Update overall progress bar
+                const totalPercentage = (filledSpaces / TOTAL_CAPACITY) * 100;
+                $("#capacity-percentage").text(Math.round(totalPercentage) + "%");
+                $("#capacity-bar").css("width", totalPercentage + "%");
+
+                // Show/hide full lot alert with specific messages
+                const isCarLotFull = cars >= CAR_CAPACITY;
+                const isBikeLotFull = bikes >= BIKE_CAPACITY;
+                
+                if (isCarLotFull && isBikeLotFull) {
+                    $("#lot-full-alert").html('<i class="fas fa-exclamation-circle"></i> Both car and bike sections are full!').show();
+                } else if (isCarLotFull) {
+                    $("#lot-full-alert").html('<i class="fas fa-exclamation-circle"></i> Four wheeler parking section is full!').show();
+                } else if (isBikeLotFull) {
+                    $("#lot-full-alert").html('<i class="fas fa-exclamation-circle"></i> Two wheeler parking section is full!').show();
+                } else {
+                    $("#lot-full-alert").hide();
+                }
             }
-          },
-          error: function () {
-            console.log("Error fetching counts");
-          },
+
+            /**
+             * Fetches data from the server and updates the UI, unless a manual update is active.
+             */
+            function fetchAndUpdateDashboard() {
+                if (isManualUpdateActive) {
+                    console.log("Auto-update paused due to manual edit.");
+                    return;
+                }
+                $.ajax({
+                    url: "/get_counts",
+                    method: "GET",
+                    success: function (data) {
+                        updateUI(data);
+                    },
+                    error: function () {
+                        console.log("Error fetching counts");
+                    },
+                });
+            }
+
+            // Handle clicking the edit icon
+            $('.edit-icon').on('click', function() {
+                const type = $(this).data('type'); // 'car' or 'bike'
+                const capacity = (type === 'car') ? CAR_CAPACITY : BIKE_CAPACITY;
+                const currentFilled = parseInt($(`#${type}-filled`).text());
+                
+                const newFilledStr = prompt(`Enter new number of filled spots for ${type}s (0-${capacity}):`, currentFilled);
+
+                if (newFilledStr === null) {
+                    return;
+                }
+
+                const newFilled = parseInt(newFilledStr);
+
+                if (isNaN(newFilled) || newFilled < 0 || newFilled > capacity) {
+                    alert(`Invalid input. Please enter a number between 0 and ${capacity}.`);
+                    return;
+                }
+
+                isManualUpdateActive = true;
+                clearTimeout(manualUpdateTimer);
+                $('#system-status').html('<i class="fas fa-pause-circle"></i> Manual Override').addClass('manual-override');
+
+                const currentData = {
+                    cars: parseInt($('#car-filled').text()),
+                    bikes: parseInt($('#bike-filled').text())
+                };
+
+                currentData[type + 's'] = newFilled;
+                
+                updateUI(currentData);
+
+                // *** NEW CODE ADDED HERE ***
+                // Send the updated counts back to the server so the video feed can use them
+                $.ajax({
+                    url: "/update_manual_counts",
+                    method: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify(currentData),
+                    success: function() {
+                        console.log("Manual counts sent to server successfully.");
+                    },
+                    error: function() {
+                        console.error("Error sending manual counts to server.");
+                    }
+                });
+                // *** END OF NEW CODE ***
+                
+                manualUpdateTimer = setTimeout(() => {
+                    isManualUpdateActive = false;
+                    $('#system-status').html('<i class="fas fa-circle"></i> System Active').removeClass('manual-override');
+                    fetchAndUpdateDashboard();
+                }, 15000);
+            });
+
+            setInterval(fetchAndUpdateDashboard, 1000);
+            
+            fetchAndUpdateDashboard();
         });
-      }
-
-      // Update dashboard every second
-      setInterval(updateDashboard, 1000);
-      
-      // Initial load
-      updateDashboard();
-
-      // Handle window resize for better responsiveness
-      let resizeTimer;
-      window.addEventListener('resize', function() {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(function() {
-          // Force a repaint for smooth transitions
-          document.body.style.display = 'none';
-          document.body.offsetHeight;
-          document.body.style.display = '';
-        }, 250);
-      });
     </script>
-  </body>
+</body>
 </html>

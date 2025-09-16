@@ -1,6 +1,6 @@
 import torch
 from ultralytics import YOLO
-from config.config import settings
+from config import settings
 
 class VehicleDetector:
     def __init__(self, device='cuda' if torch.cuda.is_available() else 'cpu'):

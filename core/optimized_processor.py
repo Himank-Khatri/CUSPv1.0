@@ -9,13 +9,15 @@ import psutil
 import gc
 
 from sort.sort import Sort
-from config.config import settings
+from config import settings
 from core.optimized_detector import OptimizedVehicleDetector
 
 logger = logging.getLogger(__name__)
 
 class OptimizedParkingProcessor:
+    
     def __init__(self):
+        self.manual_counts = {"cars": None, "bikes": None} 
         self.detector = OptimizedVehicleDetector(
             model_path=settings.get('vehicle_model_path'),
             device='cpu'
@@ -178,6 +180,10 @@ class OptimizedParkingProcessor:
             }))
         
         return methods
+    # def set_manual_counts(self, counts):
+    #     """Thread-safe method to update manual override counts."""
+    #     with self.lock:
+    #         self.manual_counts = counts
     
     def _test_connection_stability(self) -> bool:
         """Test if camera connection is stable."""
@@ -377,6 +383,30 @@ class OptimizedParkingProcessor:
                              interpolation=cv2.INTER_LINEAR)
         return frame
     
+    def set_manual_counts(self, counts: Dict[str, int]):
+        """
+        Thread-safe method to manually override the current vehicle counts.
+        This is called from the Flask endpoint when a user edits the count.
+        """
+        # Use the existing re-entrant lock for thread safety
+        with self.processing_lock:
+            try:
+                logger.info(f"Received manual count data: {counts}")
+                
+                # Validate and update car count
+                if 'cars' in counts and isinstance(counts['cars'], int):
+                    self.car_count = max(0, counts['cars'])
+                    logger.info(f"Manual override: Car count set to {self.car_count}")
+
+                # Validate and update bike count
+                if 'bikes' in counts and isinstance(counts['bikes'], int):
+                    self.bike_count = max(0, counts['bikes'])
+                    logger.info(f"Manual override: Bike count set to {self.bike_count}")
+
+            except (TypeError, ValueError) as e:
+                logger.error(f"Invalid data format for manual count update: {e}")
+                
+    
     def _update_tracking(self, frame: np.ndarray, detections: List[List[float]], 
                         frame_width: int, frame_height: int):
         """Update vehicle tracking and counting."""
@@ -483,12 +513,12 @@ class OptimizedParkingProcessor:
         #         # Draw tracking point
         #         cv2.circle(frame, (latest_x, latest_y), 5, (0, 255, 255), -1)
                 
-        #         # Draw vehicle ID and class
-        #         vehicle_class = self.track_class_labels.get(track_id, "Unknown")
-        #         direction = self.vehicle_directions.get(track_id, "Unknown")
-        #         text = f"ID:{track_id} C:{vehicle_class} D:{direction}"
-        #         cv2.putText(frame, text, (latest_x + 10, latest_y - 10), 
-        #                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+                # Draw vehicle ID and class
+                vehicle_class = self.track_class_labels.get(track_id, "Unknown")
+                direction = self.vehicle_directions.get(track_id, "Unknown")
+                text = f"ID:{track_id} C:{vehicle_class} D:{direction}"
+                cv2.putText(frame, text, (latest_x + 10, latest_y - 10), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
         
         # Draw counts
         cv2.putText(frame, f"Cars: {self.car_count}", (10, 30), 

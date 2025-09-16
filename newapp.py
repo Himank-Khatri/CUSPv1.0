@@ -1,11 +1,11 @@
-from flask import Flask, render_template, Response, jsonify
+from flask import Flask, render_template, Response, jsonify, request
 import cv2
 import logging
 import threading
 import os
 import time
 
-from config.config import settings
+from config import settings
 from core.optimized_processor import OptimizedParkingProcessor
 
 # Ensure logs directory exists
@@ -97,6 +97,22 @@ def debug_rtsp():
     }
     return jsonify(debug_info)
 
+# This is the new endpoint that your JavaScript is trying to call
+@app.route("/update_manual_counts", methods=['POST'])
+def update_manual_counts():
+    """Receives manually updated counts from the frontend."""
+    try:
+        data = request.get_json()
+        logger.info(f"Received manual count update: {data}")
+        
+        # Call the method on the processor to update the counts
+        processor.set_manual_counts(data)
+        
+        return jsonify({"status": "success", "message": "Counts updated manually."})
+    except Exception as e:
+        logger.error(f"Error updating manual counts: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+    
 @app.route("/test_simple_rtsp")
 def test_simple_rtsp():
     """Simple RTSP connection test"""

@@ -7,7 +7,7 @@ import numpy as np
 import torch
 from ultralytics import YOLO
 
-from config.config import settings
+from config import settings
 
 logger = logging.getLogger(__name__)
 

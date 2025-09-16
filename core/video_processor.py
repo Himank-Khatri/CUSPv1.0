@@ -6,7 +6,7 @@ import logging
 from collections import deque
 
 from sort.sort import Sort
-from config.config import settings
+from config import settings
 from core.detector import VehicleDetector
 from core.ocr import LicensePlateReader
 

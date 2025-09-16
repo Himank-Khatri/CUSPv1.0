@@ -11,4 +11,3 @@ toml
 psutil
 uvicorn[standard]
 numpy
-torch

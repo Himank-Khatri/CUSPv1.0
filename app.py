@@ -1,6 +1,6 @@
 import cv2
 from flask import Flask, Response, render_template
-from config.config import settings
+from config import settings
 from core.video_processor import SmartParkingProcessor
 
 app = Flask(__name__)
