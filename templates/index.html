@@ -917,22 +917,9 @@
             /**
              * Fetches data from the server and updates the UI, unless a manual update is active.
              */
-            function fetchAndUpdateDashboard() {
-                if (isManualUpdateActive) {
-                    console.log("Auto-update paused due to manual edit.");
-                    return;
-                }
-                $.ajax({
-                    url: "/get_counts",
-                    method: "GET",
-                    success: function (data) {
-                        updateUI(data);
-                    },
-                    error: function () {
-                        console.log("Error fetching counts");
-                    },
-                });
-            }
+            // Removed polling: setInterval(fetchAndUpdateDashboard, 1000);
+            
+            // fetchAndUpdateDashboard(); // Initial fetch on load - now handled by SSE
 
             const modal = $('#edit-modal');
             let currentType;
@@ -1022,13 +1009,9 @@
                 manualUpdateTimer = setTimeout(() => {
                     isManualUpdateActive = false;
                     $('#system-status').html('<i class="fas fa-circle"></i> System Active').removeClass('manual-override');
-                    fetchAndUpdateDashboard();
+                    // No need to call fetchAndUpdateDashboard, SSE will push the update
                 }, 15000);
             });
-
-            setInterval(fetchAndUpdateDashboard, 1000);
-            
-            fetchAndUpdateDashboard();
 
             // Notification logic
             function showNotification(message) {
@@ -1041,29 +1024,55 @@
                 $('#update-notification').removeClass('show');
             });
 
-            // Fetch initial data to show notification on load
-            $.ajax({
-                url: "/get_counts",
-                method: "GET",
-                success: function (data) {
-                    const lastUpdatedISO = data.last_updated;
-                    const date = new Date(lastUpdatedISO);
-                    const options = { 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric', 
-                        hour: '2-digit', 
-                        minute: '2-digit', 
-                        second: '2-digit', 
-                        hour12: true 
-                    };
-                    const formattedDateTime = date.toLocaleString('en-US', options);
-                    showNotification(`Initial Count last loaded from ${formattedDateTime}. Please update the counter if the system was down.`);
-                },
-                error: function () {
-                    console.log("Error fetching initial counts for notification");
-                },
-            });
+            // SSE setup
+            if (!!window.EventSource) {
+                const source = new EventSource("/count_stream");
+
+                source.onmessage = function(e) {
+                    if (isManualUpdateActive) {
+                        console.log("SSE update paused due to manual edit.");
+                        return;
+                    }
+                    const data = JSON.parse(e.data);
+                    updateUI(data);
+                    console.log("SSE Update:", data);
+                };
+
+                source.onerror = function(e) {
+                    console.error("EventSource failed:", e);
+                    // Optionally, try to reconnect after a delay
+                };
+
+                // Initial fetch for notification message (still useful for initial load message)
+                $.ajax({
+                    url: "/get_counts",
+                    method: "GET",
+                    success: function (data) {
+                        const lastUpdatedISO = data.last_updated;
+                        const date = new Date(lastUpdatedISO);
+                        const options = { 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric', 
+                            hour: '2-digit', 
+                            minute: '2-digit', 
+                            second: '2-digit', 
+                            hour12: true 
+                        };
+                        const formattedDateTime = date.toLocaleString('en-US', options);
+                        showNotification(`Initial Count last loaded from ${formattedDateTime}. Please update the counter if the system was down.`);
+                    },
+                    error: function () {
+                        console.log("Error fetching initial counts for notification");
+                    },
+                });
+
+            } else {
+                console.error("Your browser doesn't support Server-Sent Events!");
+                // Fallback to polling if SSE is not supported
+                // setInterval(fetchAndUpdateDashboard, 1000);
+                // fetchAndUpdateDashboard();
+            }
 
             // Video toggle logic
             const videoToggle = $('#toggle-video');

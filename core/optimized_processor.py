@@ -11,6 +11,7 @@ import psutil
 import gc
 import json
 from datetime import datetime
+import queue
 
 from sort.sort import Sort
 from config import settings
@@ -81,7 +82,11 @@ class OptimizedParkingProcessor:
         
         self.processing_thread = None
         self.shutdown_event = threading.Event()
-        
+
+        # Event for notifying count changes
+        self.count_change_event = threading.Event()
+        self.count_subscribers = [] # List of queues for SSE
+
         logger.info("OptimizedParkingProcessor initialized")
 
     def _initialize_counter_file(self):
@@ -529,6 +534,7 @@ class OptimizedParkingProcessor:
                         self.bike_free_count = max(0, self.bike_free_count - 1)
                         logger.info(f"🏍️ Bike {track_id} ENTERED - Free Bikes: {self.bike_free_count}")
                     self._save_counts_to_file()
+                    self._notify_count_subscribers() # Notify on count change
                 self.vehicle_directions[track_id] = 'crossed_down'
                 
             elif self.vehicle_directions[track_id] == 'down' and center_y < self.midline:
@@ -542,6 +548,7 @@ class OptimizedParkingProcessor:
                         self.bike_free_count = min(self.bike_total_count, self.bike_free_count + 1)
                         logger.info(f"🏍️ Bike {track_id} EXITED - Free Bikes: {self.bike_free_count}")
                     self._save_counts_to_file()
+                    self._notify_count_subscribers() # Notify on count change
                 self.vehicle_directions[track_id] = 'crossed_up'
     
     def _get_vehicle_class(self, detections: List[List[float]], bbox: np.ndarray) -> Optional[int]:
@@ -669,7 +676,40 @@ class OptimizedParkingProcessor:
             self.bike_free_count = self.bike_total_count
             self.crossed_vehicles.clear()
             self._save_counts_to_file()
+            self._notify_count_subscribers() # Notify on count reset
         logger.info("Vehicle counts reset")
+
+    def subscribe_to_counts(self):
+        """
+        Returns a queue that will receive count updates.
+        Each client gets its own queue.
+        """
+        q = queue.Queue()
+        with self.processing_lock:
+            self.count_subscribers.append(q)
+        logger.info(f"New subscriber added. Total subscribers: {len(self.count_subscribers)}")
+        return q
+
+    def unsubscribe_from_counts(self, q: queue.Queue):
+        """
+        Removes a subscriber queue.
+        """
+        with self.processing_lock:
+            if q in self.count_subscribers:
+                self.count_subscribers.remove(q)
+                logger.info(f"Subscriber removed. Total subscribers: {len(self.count_subscribers)}")
+
+    def _notify_count_subscribers(self):
+        """
+        Puts the latest counts into all subscriber queues.
+        """
+        current_counts = self.get_counts()
+        with self.processing_lock:
+            for q in self.count_subscribers:
+                try:
+                    q.put_nowait(current_counts)
+                except queue.Full:
+                    logger.warning("Subscriber queue is full, dropping update.")
     
     def cleanup(self):
         """Clean up resources."""

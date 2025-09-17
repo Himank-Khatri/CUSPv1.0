@@ -4,6 +4,8 @@ import logging
 import threading
 import os
 import time
+import json
+from flask import stream_with_context
 
 from config import settings
 from core.optimized_processor import OptimizedParkingProcessor
@@ -69,6 +71,25 @@ def get_counts():
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
     return response
+
+@app.route("/count_stream")
+def count_stream():
+    """
+    Establishes a Server-Sent Events (SSE) connection to push real-time count updates.
+    """
+    def generate_counts():
+        q = processor.subscribe_to_counts()
+        try:
+            while True:
+                # Wait for a count update
+                counts = q.get()
+                yield f"data: {json.dumps(counts)}\n\n"
+        except GeneratorExit:
+            logger.info("Client disconnected from count_stream.")
+        finally:
+            processor.unsubscribe_from_counts(q)
+
+    return Response(stream_with_context(generate_counts()), mimetype="text/event-stream")
 
 @app.route("/camera_status")
 def camera_status():
