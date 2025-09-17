@@ -465,23 +465,25 @@ class OptimizedParkingProcessor:
             if self.vehicle_directions[track_id] == 'up' and center_y > self.midline:
                 # Vehicle crossed from top to bottom (entering)
                 vehicle_class = self.track_class_labels.get(track_id)
-                if vehicle_class == 2:  # Car
-                    self.car_count += 1
-                    logger.info(f"🚗 Car {track_id} ENTERED - Total Cars: {self.car_count}")
-                elif vehicle_class == 3:  # Motorcycle
-                    self.bike_count += 1
-                    logger.info(f"🏍️ Bike {track_id} ENTERED - Total Bikes: {self.bike_count}")
+                with self.processing_lock:
+                    if vehicle_class == 2:  # Car
+                        self.car_count += 1
+                        logger.info(f"🚗 Car {track_id} ENTERED - Total Cars: {self.car_count}")
+                    elif vehicle_class == 3:  # Motorcycle
+                        self.bike_count += 1
+                        logger.info(f"🏍️ Bike {track_id} ENTERED - Total Bikes: {self.bike_count}")
                 self.vehicle_directions[track_id] = 'crossed_down'
                 
             elif self.vehicle_directions[track_id] == 'down' and center_y < self.midline:
                 # Vehicle crossed from bottom to top (exiting)
                 vehicle_class = self.track_class_labels.get(track_id)
-                if vehicle_class == 2:  # Car
-                    self.car_count = max(0, self.car_count - 1)
-                    logger.info(f"🚗 Car {track_id} EXITED - Total Cars: {self.car_count}")
-                elif vehicle_class == 3:  # Motorcycle
-                    self.bike_count = max(0, self.bike_count - 1)
-                    logger.info(f"🏍️ Bike {track_id} EXITED - Total Bikes: {self.bike_count}")
+                with self.processing_lock:
+                    if vehicle_class == 2:  # Car
+                        self.car_count = max(0, self.car_count - 1)
+                        logger.info(f"🚗 Car {track_id} EXITED - Total Cars: {self.car_count}")
+                    elif vehicle_class == 3:  # Motorcycle
+                        self.bike_count = max(0, self.bike_count - 1)
+                        logger.info(f"🏍️ Bike {track_id} EXITED - Total Bikes: {self.bike_count}")
                 self.vehicle_directions[track_id] = 'crossed_up'
     
     def _get_vehicle_class(self, detections: List[List[float]], bbox: np.ndarray) -> Optional[int]:
@@ -514,11 +516,11 @@ class OptimizedParkingProcessor:
         #         cv2.circle(frame, (latest_x, latest_y), 5, (0, 255, 255), -1)
                 
                 # Draw vehicle ID and class
-                vehicle_class = self.track_class_labels.get(track_id, "Unknown")
-                direction = self.vehicle_directions.get(track_id, "Unknown")
-                text = f"ID:{track_id} C:{vehicle_class} D:{direction}"
-                cv2.putText(frame, text, (latest_x + 10, latest_y - 10), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+                # vehicle_class = self.track_class_labels.get(track_id, "Unknown")
+                # direction = self.vehicle_directions.get(track_id, "Unknown")
+                # text = f"ID:{track_id} C:{vehicle_class} D:{direction}"
+                # cv2.putText(frame, text, (latest_x + 10, latest_y - 10), 
+                #            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
         
         # Draw counts
         cv2.putText(frame, f"Cars: {self.car_count}", (10, 30), 
@@ -583,11 +585,12 @@ class OptimizedParkingProcessor:
     
     def get_counts(self) -> Dict[str, int]:
         """Get current vehicle counts."""
-        return {
-            'cars': max(0, self.car_count),
-            'bikes': max(0, self.bike_count),
-            'total': max(0, self.car_count + self.bike_count)
-        }
+        with self.processing_lock:
+            return {
+                'cars': max(0, self.car_count),
+                'bikes': max(0, self.bike_count),
+                'total': max(0, self.car_count + self.bike_count)
+            }
     
     def get_performance_stats(self) -> Dict:
         """Get performance statistics."""
@@ -595,9 +598,10 @@ class OptimizedParkingProcessor:
     
     def reset_counts(self):
         """Reset vehicle counts."""
-        self.car_count = 0
-        self.bike_count = 0
-        self.crossed_vehicles.clear()
+        with self.processing_lock:
+            self.car_count = 0
+            self.bike_count = 0
+            self.crossed_vehicles.clear()
         logger.info("Vehicle counts reset")
     
     def cleanup(self):

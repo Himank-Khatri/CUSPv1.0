@@ -55,7 +55,11 @@ def video_feed():
 def get_counts():
     """Returns live vehicle counts"""
     counts = processor.get_counts()
-    return jsonify(counts)
+    response = jsonify(counts)
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 @app.route("/camera_status")
 def camera_status():
@@ -122,10 +126,12 @@ def test_simple_rtsp():
     }
     return jsonify(test_result)
 
+app.config['DEBUG'] = True
+
 if __name__ == "__main__":
     try:
         logger.info("Starting Optimized Smart Parking System...")
-        app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
+        app.run(host='0.0.0.0', port=5000, debug=True, threaded=True)
     except KeyboardInterrupt:
         logger.info("Shutting down...")
         processor.cleanup()

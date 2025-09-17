@@ -9,7 +9,7 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
       rel="stylesheet"
     />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
       :root {
         --primary-color: #2563eb;
@@ -30,7 +30,7 @@
         margin: 0;
         padding: 0;
         box-sizing: border-box;
-        font-family: 'Inter', sans-serif;
+        font-family: 'Roboto', sans-serif;
       }
 
       body {
@@ -123,13 +123,14 @@
 
       .vehicle-card {
         background: var(--card-background);
-        padding: 1.5rem;
+        padding: 1.25rem;
         border-radius: var(--border-radius);
         box-shadow: var(--shadow-sm);
         transition: all 0.3s ease;
         display: flex;
         flex-direction: column;
-        gap: 1.25rem;
+        gap: 1rem;
+        text-align: center;
       }
 
       .vehicle-card:hover {
@@ -140,7 +141,8 @@
       .card-header {
         display: flex;
         align-items: center;
-        gap: 1rem;
+        justify-content: center;
+        gap: 0.75rem;
       }
 
       .vehicle-card .icon {
@@ -165,38 +167,155 @@
         font-size: clamp(1rem, 3vw, 1.25rem);
         color: var(--text-primary);
         font-weight: 600;
-        flex: 1;
       }
 
-      .card-stats {
+      .card-body {
         display: flex;
         flex-direction: column;
-        gap: 0.75rem;
-      }
-
-      .stat-row {
-        display: flex;
+        gap: 1rem;
+        flex-grow: 1;
         justify-content: space-between;
+      }
+
+      .info-columns {
+        display: flex;
+        justify-content: space-around;
+        text-align: center;
+        gap: 1rem;
+      }
+
+      .info-col {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
         align-items: center;
-        padding: 0.5rem 0;
-        border-bottom: 1px solid #e2e8f0;
+      }
+      
+      .info-label-container {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        justify-content: center;
       }
 
-      .stat-row:last-child {
-        border-bottom: 2px solid var(--primary-color);
-        font-weight: 600;
-      }
-
-      .stat-label {
-        font-size: clamp(0.875rem, 2.5vw, 1rem);
+      .info-label {
         color: var(--text-secondary);
+        font-size: clamp(0.875rem, 2.5vw, 1rem);
         font-weight: 500;
       }
 
-      .stat-value {
-        font-size: clamp(0.875rem, 2.5vw, 1rem);
+      .info-value {
+        font-size: clamp(1.75rem, 5vw, 2.25rem);
+        font-weight: 700;
         color: var(--text-primary);
+      }
+
+      .card-footer {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: clamp(0.875rem, 2.5vw, 1rem);
+        color: var(--text-secondary);
+        padding-top: 0.5rem;
+      }
+      
+      .capacity-label {
+        font-weight: 500;
+      }
+
+      .capacity-value {
         font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.6);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+      }
+
+      .modal-content {
+        background-color: white;
+        padding: 2rem;
+        border-radius: var(--border-radius);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        width: 90%;
+        max-width: 400px;
+        text-align: left;
+      }
+
+      .modal-content h4 {
+        margin-top: 0;
+        margin-bottom: 1.5rem;
+        font-size: 1.25rem;
+        color: var(--text-primary);
+        text-align: center;
+      }
+
+      .modal-option {
+        margin-bottom: 1rem;
+      }
+
+      .modal-option label {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-weight: 500;
+      }
+
+      .modal-input {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 1rem;
+        margin-top: 0.5rem;
+      }
+
+      .modal-input:disabled {
+        background-color: #f1f5f9;
+      }
+
+      .modal-buttons {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+      }
+
+      .modal-button {
+        padding: 0.6rem 1.2rem;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background-color 0.2s;
+      }
+
+      .update-btn {
+        background-color: var(--primary-color);
+        color: white;
+      }
+
+      .update-btn:hover {
+        background-color: var(--secondary-color);
+      }
+
+      .cancel-btn {
+        background-color: #e2e8f0;
+        color: var(--text-primary);
+      }
+
+      .cancel-btn:hover {
+        background-color: #cbd5e1;
       }
 
       .card-progress {
@@ -508,21 +627,23 @@
                     </div>
                     <h3>Four Wheeler</h3>
                 </div>
-                <div class="card-stats">
-                    <div class="stat-row">
-                        <span class="stat-label">Filled Spots:</span>
-                        <div class="stat-value-container">
-                            <span class="stat-value" id="car-filled">0</span>
-                            <i class="fas fa-pencil-alt edit-icon" data-type="car"></i>
+                <div class="card-body">
+                    <div class="info-columns">
+                        <div class="info-col">
+                            <span class="info-label">Free</span>
+                            <span class="info-value" id="car-free">40</span>
+                        </div>
+                        <div class="info-col">
+                            <div class="info-label-container">
+                                <span class="info-label">Filled</span>
+                                <i class="fas fa-pencil-alt edit-icon" data-type="car"></i>
+                            </div>
+                            <span class="info-value" id="car-filled">0</span>
                         </div>
                     </div>
-                    <div class="stat-row">
-                        <span class="stat-label">Free Spots:</span>
-                        <span class="stat-value" id="car-free">40</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-label">Total Spots:</span>
-                        <span class="stat-value">40</span>
+                    <div class="card-footer">
+                        <span class="capacity-label">Capacity:</span>
+                        <span class="capacity-value">40</span>
                     </div>
                 </div>
                 <div class="card-progress">
@@ -543,21 +664,23 @@
                     </div>
                     <h3>Two Wheeler</h3>
                 </div>
-                <div class="card-stats">
-                    <div class="stat-row">
-                        <span class="stat-label">Filled Spots:</span>
-                        <div class="stat-value-container">
-                            <span class="stat-value" id="bike-filled">0</span>
-                            <i class="fas fa-pencil-alt edit-icon" data-type="bike"></i>
+                <div class="card-body">
+                    <div class="info-columns">
+                        <div class="info-col">
+                            <span class="info-label">Free</span>
+                            <span class="info-value" id="bike-free">300</span>
+                        </div>
+                        <div class="info-col">
+                            <div class="info-label-container">
+                                <span class="info-label">Filled</span>
+                                <i class="fas fa-pencil-alt edit-icon" data-type="bike"></i>
+                            </div>
+                            <span class="info-value" id="bike-filled" color="red">0</span>
                         </div>
                     </div>
-                    <div class="stat-row">
-                        <span class="stat-label">Free Spots:</span>
-                        <span class="stat-value" id="bike-free">300</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-label">Total Spots:</span>
-                        <span class="stat-value">300</span>
+                    <div class="card-footer">
+                        <span class="capacity-label">Capacity:</span>
+                        <span class="capacity-value">300</span>
                     </div>
                 </div>
                 <div class="card-progress">
@@ -602,6 +725,30 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="edit-modal">
+        <div class="modal-content">
+            <h4 id="modal-title">Update Count</h4>
+            <div class="modal-option">
+                <label>
+                    <input type="radio" name="update-type" value="total" checked>
+                    Modify Total
+                </label>
+                <input type="number" id="total-input" class="modal-input">
+            </div>
+            <div class="modal-option">
+                <label>
+                    <input type="radio" name="update-type" value="additive">
+                    Add/Remove Vehicles
+                </label>
+                <input type="number" id="additive-input" class="modal-input" value="1" disabled>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-button cancel-btn" id="cancel-btn">Cancel</button>
+                <button class="modal-button update-btn" id="update-btn">Update</button>
+            </div>
+        </div>
+    </div>
+
 <script>
         $(document).ready(function() {
             const CAR_CAPACITY = 40;
@@ -616,12 +763,12 @@
              * @param {object} data - An object containing the counts, e.g., { cars: 10, bikes: 50 }.
              */
             function updateUI(data) {
-                const cars = Math.min(data.cars, CAR_CAPACITY);
-                const bikes = Math.min(data.bikes, BIKE_CAPACITY);
+                const cars = data.cars;
+                const bikes = data.bikes;
                 const filledSpaces = cars + bikes;
 
                 // Update car card
-                const carFreeSpots = CAR_CAPACITY - cars;
+                const carFreeSpots = Math.max(0, CAR_CAPACITY - cars);
                 $("#car-filled").text(cars);
                 $("#car-free").text(carFreeSpots);
                 const carPercentage = (cars / CAR_CAPACITY) * 100;
@@ -629,7 +776,7 @@
                 $("#car-progress-bar").css("width", carPercentage + "%");
 
                 // Update bike card
-                const bikeFreeSpots = BIKE_CAPACITY - bikes;
+                const bikeFreeSpots = Math.max(0, BIKE_CAPACITY - bikes);
                 $("#bike-filled").text(bikes);
                 $("#bike-free").text(bikeFreeSpots);
                 const bikePercentage = (bikes / BIKE_CAPACITY) * 100;
@@ -681,25 +828,51 @@
                 });
             }
 
-            // Handle clicking the edit icon
-            $('.edit-icon').on('click', function() {
-                const type = $(this).data('type'); // 'car' or 'bike'
-                const capacity = (type === 'car') ? CAR_CAPACITY : BIKE_CAPACITY;
-                const currentFilled = parseInt($(`#${type}-filled`).text());
-                
-                const newFilledStr = prompt(`Enter new number of filled spots for ${type}s (0-${capacity}):`, currentFilled);
+            const modal = $('#edit-modal');
+            let currentType;
 
-                if (newFilledStr === null) {
-                    return;
+            $('input[name="update-type"]').on('change', function() {
+                if (this.value === 'total') {
+                    $('#total-input').prop('disabled', false);
+                    $('#additive-input').prop('disabled', true);
+                } else {
+                    $('#total-input').prop('disabled', true);
+                    $('#additive-input').prop('disabled', false);
                 }
+            });
 
-                const newFilled = parseInt(newFilledStr);
+            $('.edit-icon').on('click', function() {
+                currentType = $(this).data('type');
+                const capacity = (currentType === 'car') ? CAR_CAPACITY : BIKE_CAPACITY;
+                const currentFilled = parseInt($(`#${currentType}-filled`).text());
+                
+                $('#modal-title').text(`Update ${currentType === 'car' ? 'Four Wheeler' : 'Two Wheeler'} Count`);
+                $('#total-input').val(currentFilled).attr('max', capacity);
+                $('input[value="total"]').prop('checked', true).trigger('change');
+                modal.css('display', 'flex');
+            });
+
+            $('#cancel-btn').on('click', () => modal.hide());
+
+            $('#update-btn').on('click', function() {
+                const updateType = $('input[name="update-type"]:checked').val();
+                const capacity = (currentType === 'car') ? CAR_CAPACITY : BIKE_CAPACITY;
+                const currentFilled = parseInt($(`#${currentType}-filled`).text());
+                let newFilled;
+
+                if (updateType === 'total') {
+                    newFilled = parseInt($('#total-input').val());
+                } else {
+                    const additiveValue = parseInt($('#additive-input').val());
+                    newFilled = currentFilled + additiveValue;
+                }
 
                 if (isNaN(newFilled) || newFilled < 0 || newFilled > capacity) {
                     alert(`Invalid input. Please enter a number between 0 and ${capacity}.`);
                     return;
                 }
 
+                modal.hide();
                 isManualUpdateActive = true;
                 clearTimeout(manualUpdateTimer);
                 $('#system-status').html('<i class="fas fa-pause-circle"></i> Manual Override').addClass('manual-override');
@@ -708,27 +881,17 @@
                     cars: parseInt($('#car-filled').text()),
                     bikes: parseInt($('#bike-filled').text())
                 };
-
-                currentData[type + 's'] = newFilled;
+                currentData[currentType + 's'] = newFilled;
                 
                 updateUI(currentData);
 
-                // *** NEW CODE ADDED HERE ***
-                // Send the updated counts back to the server so the video feed can use them
                 $.ajax({
                     url: "/update_manual_counts",
                     method: "POST",
                     contentType: "application/json",
                     data: JSON.stringify(currentData),
-                    success: function() {
-                        console.log("Manual counts sent to server successfully.");
-                    },
-                    error: function() {
-                        console.error("Error sending manual counts to server.");
-                    }
                 });
-                // *** END OF NEW CODE ***
-                
+
                 manualUpdateTimer = setTimeout(() => {
                     isManualUpdateActive = false;
                     $('#system-status').html('<i class="fas fa-circle"></i> System Active').removeClass('manual-override');
