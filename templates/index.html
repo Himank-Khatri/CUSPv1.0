@@ -601,9 +601,100 @@
           background-color: #3c2626;
         }
       }
+
+      /* Notification styles */
+      .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background-color: var(--primary-color);
+        color: white;
+        padding: 15px 20px;
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-md);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        z-index: 1001;
+        opacity: 0;
+        transform: translateY(-20px);
+        transition: opacity 0.3s ease, transform 0.3s ease;
+      }
+
+      .notification.show {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .notification-close {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.2rem;
+        cursor: pointer;
+        margin-left: 10px;
+      }
+
+      /* Toggle switch styles */
+      .switch {
+        position: relative;
+        display: inline-block;
+        width: 40px;
+        height: 24px;
+      }
+
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        -webkit-transition: .4s;
+        transition: .4s;
+        border-radius: 24px;
+      }
+
+      .slider:before {
+        position: absolute;
+        content: "";
+        height: 16px;
+        width: 16px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        -webkit-transition: .4s;
+        transition: .4s;
+        border-radius: 50%;
+      }
+
+      input:checked + .slider {
+        background-color: var(--primary-color);
+      }
+
+      input:focus + .slider {
+        box-shadow: 0 0 1px var(--primary-color);
+      }
+
+      input:checked + .slider:before {
+        -webkit-transform: translateX(16px);
+        -ms-transform: translateX(16px);
+        transform: translateX(16px);
+      }
     </style>
   </head>
 <body>
+    <div class="notification" id="update-notification">
+        <span id="notification-message"></span>
+        <button class="notification-close" id="close-notification">&times;</button>
+    </div>
     <div class="container">
         <div class="header">
             <div class="header-left">
@@ -716,11 +807,19 @@
         </div>
 
         <div class="video-container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="margin: 0; color: var(--text-primary);">Live Video Feed</h3>
+                <label class="switch">
+                    <input type="checkbox" id="toggle-video" checked>
+                    <span class="slider round"></span>
+                </label>
+            </div>
             <img
               src="{{ url_for('video_feed') }}"
               class="video-feed"
               alt="Video Feed"
               loading="lazy"
+              id="live-video-feed"
             />
         </div>
     </div>
@@ -751,51 +850,58 @@
 
 <script>
         $(document).ready(function() {
-            const CAR_CAPACITY = 40;
-            const BIKE_CAPACITY = 300;
-            const TOTAL_CAPACITY = CAR_CAPACITY + BIKE_CAPACITY;
-
             let isManualUpdateActive = false;
             let manualUpdateTimer;
 
             /**
              * Central function to update all UI elements based on car and bike counts.
-             * @param {object} data - An object containing the counts, e.g., { cars: 10, bikes: 50 }.
+             * @param {object} data - An object containing the counts, e.g., { cars: { free: 10, total: 50 }, bikes: { free: 50, total: 300 }, last_updated: "..." }.
              */
             function updateUI(data) {
-                const cars = data.cars;
-                const bikes = data.bikes;
-                const filledSpaces = cars + bikes;
+                const carData = data.cars;
+                const bikeData = data.bikes;
+                const lastUpdated = data.last_updated;
+
+                const carFree = carData.free;
+                const carTotal = carData.total;
+                const carFilled = carTotal - carFree;
+
+                const bikeFree = bikeData.free;
+                const bikeTotal = bikeData.total;
+                const bikeFilled = bikeTotal - bikeFree;
+
+                const totalCapacity = carTotal + bikeTotal;
+                const totalFilled = carFilled + bikeFilled;
 
                 // Update car card
-                const carFreeSpots = Math.max(0, CAR_CAPACITY - cars);
-                $("#car-filled").text(cars);
-                $("#car-free").text(carFreeSpots);
-                const carPercentage = (cars / CAR_CAPACITY) * 100;
+                $("#car-free").text(carFree);
+                $("#car-filled").text(carFilled);
+                $(".vehicle-card .card-footer .capacity-value").eq(0).text(carTotal); // Update car capacity in footer
+                const carPercentage = (carFilled / carTotal) * 100;
                 $("#car-percentage").text(Math.round(carPercentage) + "%");
                 $("#car-progress-bar").css("width", carPercentage + "%");
 
                 // Update bike card
-                const bikeFreeSpots = Math.max(0, BIKE_CAPACITY - bikes);
-                $("#bike-filled").text(bikes);
-                $("#bike-free").text(bikeFreeSpots);
-                const bikePercentage = (bikes / BIKE_CAPACITY) * 100;
+                $("#bike-free").text(bikeFree);
+                $("#bike-filled").text(bikeFilled);
+                $(".vehicle-card .card-footer .capacity-value").eq(1).text(bikeTotal); // Update bike capacity in footer
+                const bikePercentage = (bikeFilled / bikeTotal) * 100;
                 $("#bike-percentage").text(Math.round(bikePercentage) + "%");
                 $("#bike-progress-bar").css("width", bikePercentage + "%");
 
                 // Update overall capacity details
-                $("#car-capacity").text(`${cars}/${CAR_CAPACITY}`);
-                $("#bike-capacity").text(`${bikes}/${BIKE_CAPACITY}`);
-                $("#total-capacity").text(`${filledSpaces}/${TOTAL_CAPACITY}`);
+                $("#car-capacity").text(`${carFilled}/${carTotal}`);
+                $("#bike-capacity").text(`${bikeFilled}/${bikeTotal}`);
+                $("#total-capacity").text(`${totalFilled}/${totalCapacity}`);
 
                 // Update overall progress bar
-                const totalPercentage = (filledSpaces / TOTAL_CAPACITY) * 100;
+                const totalPercentage = (totalFilled / totalCapacity) * 100;
                 $("#capacity-percentage").text(Math.round(totalPercentage) + "%");
                 $("#capacity-bar").css("width", totalPercentage + "%");
 
                 // Show/hide full lot alert with specific messages
-                const isCarLotFull = cars >= CAR_CAPACITY;
-                const isBikeLotFull = bikes >= BIKE_CAPACITY;
+                const isCarLotFull = carFilled >= carTotal;
+                const isBikeLotFull = bikeFilled >= bikeTotal;
                 
                 if (isCarLotFull && isBikeLotFull) {
                     $("#lot-full-alert").html('<i class="fas fa-exclamation-circle"></i> Both car and bike sections are full!').show();
@@ -843,7 +949,9 @@
 
             $('.edit-icon').on('click', function() {
                 currentType = $(this).data('type');
-                const capacity = (currentType === 'car') ? CAR_CAPACITY : BIKE_CAPACITY;
+                // Get capacity from the displayed value in the card footer
+                const capacityElement = $(this).closest('.vehicle-card').find('.card-footer .capacity-value');
+                const capacity = parseInt(capacityElement.text());
                 const currentFilled = parseInt($(`#${currentType}-filled`).text());
                 
                 $('#modal-title').text(`Update ${currentType === 'car' ? 'Four Wheeler' : 'Two Wheeler'} Count`);
@@ -856,7 +964,8 @@
 
             $('#update-btn').on('click', function() {
                 const updateType = $('input[name="update-type"]:checked').val();
-                const capacity = (currentType === 'car') ? CAR_CAPACITY : BIKE_CAPACITY;
+                // Get capacity from the displayed value in the card footer for the current type
+                const capacity = parseInt($(`#${currentType}-capacity`).text().split('/')[1]);
                 const currentFilled = parseInt($(`#${currentType}-filled`).text());
                 let newFilled;
 
@@ -877,19 +986,37 @@
                 clearTimeout(manualUpdateTimer);
                 $('#system-status').html('<i class="fas fa-pause-circle"></i> Manual Override').addClass('manual-override');
 
-                const currentData = {
-                    cars: parseInt($('#car-filled').text()),
-                    bikes: parseInt($('#bike-filled').text())
+                const currentCarFree = parseInt($('#car-free').text());
+                const currentBikeFree = parseInt($('#bike-free').text());
+                const currentCarTotal = parseInt($(".vehicle-card .card-footer .capacity-value").eq(0).text());
+                const currentBikeTotal = parseInt($(".vehicle-card .card-footer .capacity-value").eq(1).text());
+
+                let updatedCarFree = currentCarFree;
+                let updatedBikeFree = currentBikeFree;
+
+                if (currentType === 'car') {
+                    updatedCarFree = currentCarTotal - newFilled;
+                } else {
+                    updatedBikeFree = currentBikeTotal - newFilled;
+                }
+
+                const dataToSend = {
+                    cars: updatedCarFree,
+                    bikes: updatedBikeFree
                 };
-                currentData[currentType + 's'] = newFilled;
                 
-                updateUI(currentData);
+                // Update UI immediately with the new calculated free spots
+                updateUI({
+                    cars: { free: updatedCarFree, total: currentCarTotal },
+                    bikes: { free: updatedBikeFree, total: currentBikeTotal },
+                    last_updated: new Date().toISOString() // Placeholder for immediate UI update
+                });
 
                 $.ajax({
                     url: "/update_manual_counts",
                     method: "POST",
                     contentType: "application/json",
-                    data: JSON.stringify(currentData),
+                    data: JSON.stringify(dataToSend),
                 });
 
                 manualUpdateTimer = setTimeout(() => {
@@ -902,6 +1029,85 @@
             setInterval(fetchAndUpdateDashboard, 1000);
             
             fetchAndUpdateDashboard();
+
+            // Notification logic
+            function showNotification(message) {
+                const notification = $('#update-notification');
+                $('#notification-message').text(message);
+                notification.addClass('show');
+            }
+
+            $('#close-notification').on('click', function() {
+                $('#update-notification').removeClass('show');
+            });
+
+            // Fetch initial data to show notification on load
+            $.ajax({
+                url: "/get_counts",
+                method: "GET",
+                success: function (data) {
+                    const lastUpdatedISO = data.last_updated;
+                    const date = new Date(lastUpdatedISO);
+                    const options = { 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric', 
+                        hour: '2-digit', 
+                        minute: '2-digit', 
+                        second: '2-digit', 
+                        hour12: true 
+                    };
+                    const formattedDateTime = date.toLocaleString('en-US', options);
+                    showNotification(`Initial Count last loaded from ${formattedDateTime}. Please update the counter if the system was down.`);
+                },
+                error: function () {
+                    console.log("Error fetching initial counts for notification");
+                },
+            });
+
+            // Video toggle logic
+            const videoToggle = $('#toggle-video');
+            const liveVideoFeed = $('#live-video-feed');
+            const videoFeedSrc = liveVideoFeed.attr('src'); // Store original src
+
+            videoToggle.on('change', function() {
+                if (this.checked) {
+                    // Show video
+                    liveVideoFeed.attr('src', videoFeedSrc);
+                    liveVideoFeed.show();
+                    // Inform server to start sending frames
+                    $.ajax({
+                        url: "/toggle_video_feed",
+                        method: "POST",
+                        contentType: "application/json",
+                        data: JSON.stringify({ enable: true }),
+                        error: function() {
+                            console.log("Error enabling video feed on server.");
+                        }
+                    });
+                } else {
+                    // Hide video
+                    liveVideoFeed.attr('src', ''); // Clear src to stop loading frames
+                    liveVideoFeed.hide();
+                    // Inform server to stop sending frames
+                    $.ajax({
+                        url: "/toggle_video_feed",
+                        method: "POST",
+                        contentType: "application/json",
+                        data: JSON.stringify({ enable: false }),
+                        error: function() {
+                            console.log("Error disabling video feed on server.");
+                        }
+                    });
+                }
+            });
+
+            // Ensure video is initially shown if checkbox is checked on load
+            if (videoToggle.is(':checked')) {
+                liveVideoFeed.show();
+            } else {
+                liveVideoFeed.hide();
+            }
         });
     </script>
 </body>

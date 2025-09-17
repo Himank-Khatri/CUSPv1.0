@@ -1,3 +1,5 @@
+import os
+
 import cv2
 import numpy as np
 import threading
@@ -7,6 +9,8 @@ from collections import deque, defaultdict
 from typing import Dict, List, Optional, Tuple
 import psutil
 import gc
+import json
+from datetime import datetime
 
 from sort.sort import Sort
 from config import settings
@@ -29,10 +33,16 @@ class OptimizedParkingProcessor:
             iou_threshold=settings.get('sort_iou_threshold', 0.3)
         )
         
-        self.car_count = 0
-        self.bike_count = 0
-        self.total_vehicles = 0
+        self.car_free_count = 0
+        self.bike_free_count = 0
+        self.car_total_count = 0
+        self.bike_total_count = 0
+        self.last_updated = None
+        self.counter_file_path = settings.get('counter_file_path', 'counter.json')
         
+        self._initialize_counter_file()
+        self._load_counts_from_file()
+
         self.vehicle_directions = {}
         self.track_class_labels = {}
         self.track_history = defaultdict(list)
@@ -69,24 +79,68 @@ class OptimizedParkingProcessor:
         }
         self.last_stats_update = time.time()
         
-        self.processing_thread = None        # for track_id, track_info in self.track_history.items():
-        #     if len(track_info) > 0:
-        #         # Get the latest position
-        #         latest_y = track_info[-1]
-        #         latest_x = frame_width // 2  # Approximate x position
-                
-        #         # Draw tracking point
-        #         cv2.circle(frame, (latest_x, latest_y), 5, (0, 255, 255), -1)
-                
-        #         # Draw vehicle ID and class
-        #         vehicle_class = self.track_class_labels.get(track_id, "Unknown")
-        #         direction = self.vehicle_directions.get(track_id, "Unknown")
-        #         text = f"ID:{track_id} C:{vehicle_class} D:{direction}"
-        #         cv2.putText(frame, text, (latest_x + 10, latest_y - 10), 
-        #                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+        self.processing_thread = None
         self.shutdown_event = threading.Event()
         
         logger.info("OptimizedParkingProcessor initialized")
+
+    def _initialize_counter_file(self):
+        """
+        Initializes the counter.json file with default values if it doesn't exist.
+        """
+        if not os.path.exists(self.counter_file_path):
+            default_counts = {
+                "bikes": {"free": 0, "total": 0},
+                "cars": {"free": 0, "total": 0},
+                "last_updated": datetime.now().isoformat()
+            }
+            with open(self.counter_file_path, 'w') as f:
+                json.dump(default_counts, f, indent=2)
+            logger.info(f"Created default counter file at {self.counter_file_path}")
+
+    def _load_counts_from_file(self):
+        """
+        Loads vehicle counts and total capacities from the counter.json file.
+        """
+        try:
+            with open(self.counter_file_path, 'r') as f:
+                data = json.load(f)
+                self.bike_free_count = data.get('bikes', {}).get('free', 0)
+                self.bike_total_count = data.get('bikes', {}).get('total', 0)
+                self.car_free_count = data.get('cars', {}).get('free', 0)
+                self.car_total_count = data.get('cars', {}).get('total', 0)
+                self.last_updated = data.get('last_updated', None)
+            logger.info(f"Loaded counts from {self.counter_file_path}: Cars Free={self.car_free_count}, Bikes Free={self.bike_free_count}")
+        except FileNotFoundError:
+            logger.warning(f"Counter file not found at {self.counter_file_path}. Initializing with defaults.")
+            self._initialize_counter_file()
+            self._load_counts_from_file() # Try loading again after initialization
+        except json.JSONDecodeError as e:
+            logger.error(f"Error decoding JSON from {self.counter_file_path}: {e}. Resetting to defaults.")
+            self._initialize_counter_file()
+            self._load_counts_from_file() # Try loading again after reset
+        except Exception as e:
+            logger.error(f"An unexpected error occurred while loading counts: {e}")
+            self._initialize_counter_file()
+            self._load_counts_from_file() # Try loading again after reset
+
+    def _save_counts_to_file(self):
+        """
+        Saves the current vehicle counts and total capacities to the counter.json file.
+        """
+        with self.processing_lock:
+            data = {
+                "bikes": {"free": self.bike_free_count, "total": self.bike_total_count},
+                "cars": {"free": self.car_free_count, "total": self.car_total_count},
+                "last_updated": datetime.now().isoformat()
+            }
+            try:
+                with open(self.counter_file_path, 'w') as f:
+                    json.dump(data, f, indent=2)
+                self.last_updated = data["last_updated"]
+                logger.debug(f"Saved counts to {self.counter_file_path}")
+            except Exception as e:
+                logger.error(f"Error saving counts to {self.counter_file_path}: {e}")
     
     def initialize_camera(self) -> bool:
         """Initialize camera connection with improved error handling."""
@@ -395,13 +449,15 @@ class OptimizedParkingProcessor:
                 
                 # Validate and update car count
                 if 'cars' in counts and isinstance(counts['cars'], int):
-                    self.car_count = max(0, counts['cars'])
-                    logger.info(f"Manual override: Car count set to {self.car_count}")
+                    self.car_free_count = max(0, counts['cars'])
+                    logger.info(f"Manual override: Car free count set to {self.car_free_count}")
 
                 # Validate and update bike count
                 if 'bikes' in counts and isinstance(counts['bikes'], int):
-                    self.bike_count = max(0, counts['bikes'])
-                    logger.info(f"Manual override: Bike count set to {self.bike_count}")
+                    self.bike_free_count = max(0, counts['bikes'])
+                    logger.info(f"Manual override: Bike free count set to {self.bike_free_count}")
+                
+                self._save_counts_to_file()
 
             except (TypeError, ValueError) as e:
                 logger.error(f"Invalid data format for manual count update: {e}")
@@ -467,11 +523,12 @@ class OptimizedParkingProcessor:
                 vehicle_class = self.track_class_labels.get(track_id)
                 with self.processing_lock:
                     if vehicle_class == 2:  # Car
-                        self.car_count += 1
-                        logger.info(f"🚗 Car {track_id} ENTERED - Total Cars: {self.car_count}")
+                        self.car_free_count = max(0, self.car_free_count - 1)
+                        logger.info(f"🚗 Car {track_id} ENTERED - Free Cars: {self.car_free_count}")
                     elif vehicle_class == 3:  # Motorcycle
-                        self.bike_count += 1
-                        logger.info(f"🏍️ Bike {track_id} ENTERED - Total Bikes: {self.bike_count}")
+                        self.bike_free_count = max(0, self.bike_free_count - 1)
+                        logger.info(f"🏍️ Bike {track_id} ENTERED - Free Bikes: {self.bike_free_count}")
+                    self._save_counts_to_file()
                 self.vehicle_directions[track_id] = 'crossed_down'
                 
             elif self.vehicle_directions[track_id] == 'down' and center_y < self.midline:
@@ -479,11 +536,12 @@ class OptimizedParkingProcessor:
                 vehicle_class = self.track_class_labels.get(track_id)
                 with self.processing_lock:
                     if vehicle_class == 2:  # Car
-                        self.car_count = max(0, self.car_count - 1)
-                        logger.info(f"🚗 Car {track_id} EXITED - Total Cars: {self.car_count}")
+                        self.car_free_count = min(self.car_total_count, self.car_free_count + 1)
+                        logger.info(f"🚗 Car {track_id} EXITED - Free Cars: {self.car_free_count}")
                     elif vehicle_class == 3:  # Motorcycle
-                        self.bike_count = max(0, self.bike_count - 1)
-                        logger.info(f"🏍️ Bike {track_id} EXITED - Total Bikes: {self.bike_count}")
+                        self.bike_free_count = min(self.bike_total_count, self.bike_free_count + 1)
+                        logger.info(f"🏍️ Bike {track_id} EXITED - Free Bikes: {self.bike_free_count}")
+                    self._save_counts_to_file()
                 self.vehicle_directions[track_id] = 'crossed_up'
     
     def _get_vehicle_class(self, detections: List[List[float]], bbox: np.ndarray) -> Optional[int]:
@@ -506,31 +564,33 @@ class OptimizedParkingProcessor:
         cv2.line(frame, (0, midline), (frame_width, midline), (255, 0, 0), 2)
         
         # Draw tracking boxes and vehicle information
-        # for track_id, track_info in self.track_history.items():
-        #     if len(track_info) > 0:
-        #         # Get the latest position
-        #         latest_y = track_info[-1]
-        #         latest_x = frame_width // 2  # Approximate x position
+        for track_id, track_info in self.track_history.items():
+            if len(track_info) > 0:
+                # Get the latest position
+                latest_y = track_info[-1]
+                latest_x = frame_width // 2  # Approximate x position
                 
-        #         # Draw tracking point
-        #         cv2.circle(frame, (latest_x, latest_y), 5, (0, 255, 255), -1)
+                # Draw tracking point
+                cv2.circle(frame, (latest_x, latest_y), 5, (0, 255, 255), -1)
                 
                 # Draw vehicle ID and class
-                # vehicle_class = self.track_class_labels.get(track_id, "Unknown")
-                # direction = self.vehicle_directions.get(track_id, "Unknown")
-                # text = f"ID:{track_id} C:{vehicle_class} D:{direction}"
-                # cv2.putText(frame, text, (latest_x + 10, latest_y - 10), 
-                #            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+                vehicle_class = self.track_class_labels.get(track_id, "Unknown")
+                direction = self.vehicle_directions.get(track_id, "Unknown")
+                text = f"ID:{track_id} C:{vehicle_class} D:{direction}"
+                cv2.putText(frame, text, (latest_x + 10, latest_y - 10), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
         
         # Draw counts
-        cv2.putText(frame, f"Cars: {self.car_count}", (10, 30), 
-                   cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-        cv2.putText(frame, f"Bikes: {self.bike_count}", (10, 70), 
-                   cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        cv2.putText(frame, f"Cars: {self.car_total_count - self.car_free_count}/{self.car_total_count}", (10, 30), 
+                   cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 3)
+        cv2.putText(frame, f"Bikes: {self.bike_total_count - self.bike_free_count}/{self.bike_total_count}", (10, 70), 
+                   cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 3)
         
-        # Draw total vehicles
-        total_vehicles = self.car_count + self.bike_count
-        cv2.putText(frame, f"Total: {total_vehicles}", (10, 110), 
+        # Draw total vehicles (occupied)
+        occupied_cars = self.car_total_count - self.car_free_count
+        occupied_bikes = self.bike_total_count - self.bike_free_count
+        total_occupied = occupied_cars + occupied_bikes
+        cv2.putText(frame, f"Occupied: {total_occupied}", (10, 110), 
                    cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
         
         # Draw performance stats
@@ -587,9 +647,15 @@ class OptimizedParkingProcessor:
         """Get current vehicle counts."""
         with self.processing_lock:
             return {
-                'cars': max(0, self.car_count),
-                'bikes': max(0, self.bike_count),
-                'total': max(0, self.car_count + self.bike_count)
+                'cars': {
+                    'free': max(0, self.car_free_count),
+                    'total': self.car_total_count
+                },
+                'bikes': {
+                    'free': max(0, self.bike_free_count),
+                    'total': self.bike_total_count
+                },
+                'last_updated': self.last_updated
             }
     
     def get_performance_stats(self) -> Dict:
@@ -599,9 +665,10 @@ class OptimizedParkingProcessor:
     def reset_counts(self):
         """Reset vehicle counts."""
         with self.processing_lock:
-            self.car_count = 0
-            self.bike_count = 0
+            self.car_free_count = self.car_total_count
+            self.bike_free_count = self.bike_total_count
             self.crossed_vehicles.clear()
+            self._save_counts_to_file()
         logger.info("Vehicle counts reset")
     
     def cleanup(self):
