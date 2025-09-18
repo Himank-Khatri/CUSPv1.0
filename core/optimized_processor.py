@@ -3,6 +3,8 @@ import numpy as np
 import threading
 import time
 import logging
+import json
+from datetime import datetime
 from collections import deque, defaultdict
 from typing import Dict, List, Optional, Tuple
 import gc
@@ -17,9 +19,11 @@ from core.performance_tracker import PerformanceTracker
 logger = logging.getLogger(__name__)
 
 class OptimizedParkingProcessor:
-    
     def __init__(self):
-        self.manual_counts = {"cars": None, "bikes": None} 
+        self.manual_counts = {"cars": None, "bikes": None}
+        self.counter_file = 'data/counter.json'
+        self._load_counts()
+
         self.detector = OptimizedVehicleDetector(
             model_path=settings.get('vehicle_model_path'),
             device='cpu'
@@ -30,9 +34,6 @@ class OptimizedParkingProcessor:
             min_hits=settings.get('sort_min_hits', 2),
             iou_threshold=settings.get('sort_iou_threshold', 0.3)
         )
-        
-        self.car_count = 0
-        self.bike_count = 0
         
         self.vehicle_directions = {}
         self.track_class_labels = {}
@@ -59,6 +60,44 @@ class OptimizedParkingProcessor:
         
         logger.info("OptimizedParkingProcessor initialized")
     
+    def _load_counts(self):
+        """Load counts from the JSON file."""
+        try:
+            with open(self.counter_file, 'r') as f:
+                data = json.load(f)
+                self.car_count = data.get('cars', {}).get('occupied', 0)
+                self.bike_count = data.get('bikes', {}).get('occupied', 0)
+                self.total_car_slots = data.get('cars', {}).get('total', 0)
+                self.total_bike_slots = data.get('bikes', {}).get('total', 0)
+                logger.info(f"Counts loaded from {self.counter_file}")
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            logger.error(f"Error loading counter file: {e}. Initializing counts to 0.")
+            self.car_count = 0
+            self.bike_count = 0
+            self.total_car_slots = 32  # Default
+            self.total_bike_slots = 500 # Default
+            self._update_counter_file()
+
+    def _update_counter_file(self):
+        """Update the JSON counter file with the current counts."""
+        try:
+            with self.processing_lock:
+                counts = {
+                    "cars": {
+                        "occupied": self.car_count,
+                        "total": self.total_car_slots
+                    },
+                    "bikes": {
+                        "occupied": self.bike_count,
+                        "total": self.total_bike_slots
+                    },
+                    "last_updated": datetime.utcnow().isoformat() + "Z"
+                }
+                with open(self.counter_file, 'w') as f:
+                    json.dump(counts, f, indent=4)
+        except Exception as e:
+            logger.error(f"Failed to update counter file: {e}")
+
     def start_processing_thread(self):
         """Start the background frame grabbing and processing threads."""
         if self.processing_thread is None or not self.processing_thread.is_alive():
@@ -261,6 +300,7 @@ class OptimizedParkingProcessor:
                     elif vehicle_class == 3:
                         self.bike_count += 1
                         logger.info(f"🏍️ Bike {track_id} ENTERED - Total Bikes: {self.bike_count}")
+                self._update_counter_file()
                 self.vehicle_directions[track_id] = 'crossed_down'
                 
             elif self.vehicle_directions[track_id] == 'down' and center_y < self.midline:
@@ -272,6 +312,7 @@ class OptimizedParkingProcessor:
                     elif vehicle_class == 3:
                         self.bike_count = max(0, self.bike_count - 1)
                         logger.info(f"🏍️ Bike {track_id} EXITED - Total Bikes: {self.bike_count}")
+                self._update_counter_file()
                 self.vehicle_directions[track_id] = 'crossed_up'
     
     def _get_vehicle_class(self, detections: List[List[float]], bbox: np.ndarray) -> Optional[int]:
@@ -299,8 +340,14 @@ class OptimizedParkingProcessor:
         """Get current vehicle counts."""
         with self.processing_lock:
             return {
-                'cars': max(0, self.car_count),
-                'bikes': max(0, self.bike_count),
+                'cars': {
+                    'occupied': max(0, self.car_count),
+                    'total': self.total_car_slots
+                },
+                'bikes': {
+                    'occupied': max(0, self.bike_count),
+                    'total': self.total_bike_slots
+                },
                 'total': max(0, self.car_count + self.bike_count)
             }
     
@@ -313,6 +360,7 @@ class OptimizedParkingProcessor:
         with self.processing_lock:
             self.car_count = 0
             self.bike_count = 0
+            self._update_counter_file()
         logger.info("Vehicle counts reset")
     
     def cleanup(self):

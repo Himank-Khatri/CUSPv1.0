@@ -1,0 +1,11 @@
+{
+    "cars": {
+        "occupied": 0,
+        "total": 32
+    },
+    "bikes": {
+        "occupied": 0,
+        "total": 500
+    },
+    "last_updated": "2025-09-18T02:53:27.453Z"
+}
