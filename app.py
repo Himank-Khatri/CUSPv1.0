@@ -4,6 +4,7 @@ import logging
 import threading
 import os
 import time
+import json # Import json for reading counter.json
 
 from config import settings
 from core.optimized_processor import OptimizedParkingProcessor
@@ -33,10 +34,20 @@ processor.start_processing_thread() # Start the background processing thread
 # Global variable to control video streaming
 video_streaming_enabled = True
 
+# Path to the counter JSON file
+COUNTER_FILE_PATH = settings.get('counter_file_path', 'counter.json')
+
 @app.route("/")
 def home():
-    """Serves the dashboard template"""
-    return render_template("index.html")
+    """Serves the dashboard template with initial counts from counter.json."""
+    try:
+        with open(COUNTER_FILE_PATH, 'r') as f:
+            initial_counts = json.load(f)
+    except Exception as e:
+        logger.error(f"Error reading initial counts from {COUNTER_FILE_PATH}: {e}")
+        initial_counts = {"bikes": {"free": 0, "total": 0}, "cars": {"free": 0, "total": 0}}
+    
+    return render_template("index.html", initial_counts=initial_counts)
 
 @app.route("/video_feed")
 def video_feed():
@@ -62,8 +73,28 @@ def video_feed():
 
 @app.route("/get_counts")
 def get_counts():
-    """Returns live vehicle counts"""
-    counts = processor.get_counts()
+    """
+    Returns live vehicle counts from the processor's in-memory state.
+    Implements long-polling to push updates to the frontend.
+    """
+    # Get current counts before waiting
+    initial_counts = processor.get_counts()
+    
+    # Wait for an update with a timeout (e.g., 25 seconds)
+    # If an update occurs, the event is set and wait() returns True
+    # If timeout occurs, wait() returns False
+    updated = processor._counts_updated_event.wait(timeout=25)
+    
+    if updated:
+        processor._counts_updated_event.clear() # Clear the event for the next update
+        counts = processor.get_counts() # Get the latest counts
+        logger.info("Sending updated counts via long-poll (event triggered).")
+    else:
+        # If no update, send the initial counts (or a "no change" indicator)
+        # For simplicity, we'll just send the current counts, which might be the initial ones
+        counts = initial_counts
+        logger.info("Long-poll timed out, sending current counts (no event).")
+
     response = jsonify(counts)
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Pragma"] = "no-cache"
@@ -85,7 +116,13 @@ def camera_status():
 def reset_counts():
     """Reset vehicle counts"""
     processor.reset_counts()
-    counts = processor.get_counts()
+    # After resetting, get counts directly from the file
+    try:
+        with open(COUNTER_FILE_PATH, 'r') as f:
+            counts = json.load(f)
+    except Exception as e:
+        logger.error(f"Error reading counts after reset from {COUNTER_FILE_PATH}: {e}")
+        counts = {"bikes": {"free": 0, "total": 0}, "cars": {"free": 0, "total": 0}}
     return jsonify({"status": "Counts reset", "cars": counts['cars'], "bikes": counts['bikes']})
 
 @app.route("/reconnect_camera")

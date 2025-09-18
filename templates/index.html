@@ -722,28 +722,28 @@
                     <div class="info-columns">
                         <div class="info-col">
                             <span class="info-label">Free</span>
-                            <span class="info-value" id="car-free">40</span>
+                            <span class="info-value" id="car-free">{{ initial_counts.cars.free }}</span>
                         </div>
                         <div class="info-col">
                             <div class="info-label-container">
                                 <span class="info-label">Filled</span>
                                 <i class="fas fa-pencil-alt edit-icon" data-type="car"></i>
                             </div>
-                            <span class="info-value" id="car-filled">0</span>
+                            <span class="info-value" id="car-filled">{{ initial_counts.cars.total - initial_counts.cars.free }}</span>
                         </div>
                     </div>
                     <div class="card-footer">
                         <span class="capacity-label">Capacity:</span>
-                        <span class="capacity-value">40</span>
+                        <span class="capacity-value">{{ initial_counts.cars.total }}</span>
                     </div>
                 </div>
                 <div class="card-progress">
                     <div class="progress-header">
                         <span>Occupancy</span>
-                        <span id="car-percentage">0%</span>
+                        <span id="car-percentage">{{ ((initial_counts.cars.total - initial_counts.cars.free) / initial_counts.cars.total * 100) | round(0) if initial_counts.cars.total > 0 else 0 }}%</span>
                     </div>
                     <div class="progress-bar">
-                        <div class="progress-fill car-progress" id="car-progress-bar"></div>
+                        <div class="progress-fill car-progress" id="car-progress-bar" style="width: {{ ((initial_counts.cars.total - initial_counts.cars.free) / initial_counts.cars.total * 100) | round(0) if initial_counts.cars.total > 0 else 0 }}%;"></div>
                     </div>
                 </div>
             </div>
@@ -759,28 +759,28 @@
                     <div class="info-columns">
                         <div class="info-col">
                             <span class="info-label">Free</span>
-                            <span class="info-value" id="bike-free">300</span>
+                            <span class="info-value" id="bike-free">{{ initial_counts.bikes.free }}</span>
                         </div>
                         <div class="info-col">
                             <div class="info-label-container">
                                 <span class="info-label">Filled</span>
                                 <i class="fas fa-pencil-alt edit-icon" data-type="bike"></i>
                             </div>
-                            <span class="info-value" id="bike-filled" color="red">0</span>
+                            <span class="info-value" id="bike-filled" color="red">{{ initial_counts.bikes.total - initial_counts.bikes.free }}</span>
                         </div>
                     </div>
                     <div class="card-footer">
                         <span class="capacity-label">Capacity:</span>
-                        <span class="capacity-value">300</span>
+                        <span class="capacity-value">{{ initial_counts.bikes.total }}</span>
                     </div>
                 </div>
                 <div class="card-progress">
                     <div class="progress-header">
                         <span>Occupancy</span>
-                        <span id="bike-percentage">0%</span>
+                        <span id="bike-percentage">{{ ((initial_counts.bikes.total - initial_counts.bikes.free) / initial_counts.bikes.total * 100) | round(0) if initial_counts.bikes.total > 0 else 0 }}%</span>
                     </div>
                     <div class="progress-bar">
-                        <div class="progress-fill bike-progress" id="bike-progress-bar"></div>
+                        <div class="progress-fill bike-progress" id="bike-progress-bar" style="width: {{ ((initial_counts.bikes.total - initial_counts.bikes.free) / initial_counts.bikes.total * 100) | round(0) if initial_counts.bikes.total > 0 else 0 }}%;"></div>
                     </div>
                 </div>
             </div>
@@ -789,15 +789,15 @@
         <div class="capacity-container">
             <div class="capacity-header">
                 <span>Lot Capacity Usage</span>
-                <span id="capacity-percentage">0%</span>
+                <span id="capacity-percentage">{{ (((initial_counts.cars.total - initial_counts.cars.free) + (initial_counts.bikes.total - initial_counts.bikes.free)) / (initial_counts.cars.total + initial_counts.bikes.total) * 100) | round(0) if (initial_counts.cars.total + initial_counts.bikes.total) > 0 else 0 }}%</span>
             </div>
             <div class="capacity-details">
-                <span>Car Spots: <span id="car-capacity">0/40</span></span>
-                <span>Bike Spots: <span id="bike-capacity">0/300</span></span>
-                <span>Total: <span id="total-capacity">0/340</span></span>
+                <span>Car Spots: <span id="car-capacity">{{ initial_counts.cars.total - initial_counts.cars.free }}/{{ initial_counts.cars.total }}</span></span>
+                <span>Bike Spots: <span id="bike-capacity">{{ initial_counts.bikes.total - initial_counts.bikes.free }}/{{ initial_counts.bikes.total }}</span></span>
+                <span>Total: <span id="total-capacity">{{ (initial_counts.cars.total - initial_counts.cars.free) + (initial_counts.bikes.total - initial_counts.bikes.free) }}/{{ initial_counts.cars.total + initial_counts.bikes.total }}</span></span>
             </div>
             <div class="progress-bar">
-                <div class="progress-fill" id="capacity-bar"></div>
+                <div class="progress-fill" id="capacity-bar" style="width: {{ (((initial_counts.cars.total - initial_counts.cars.free) + (initial_counts.bikes.total - initial_counts.bikes.free)) / (initial_counts.cars.total + initial_counts.bikes.total) * 100) | round(0) if (initial_counts.cars.total + initial_counts.bikes.total) > 0 else 0 }}%;"></div>
             </div>
         </div>
 
@@ -1026,9 +1026,29 @@
                 }, 15000);
             });
 
-            setInterval(fetchAndUpdateDashboard, 1000);
-            
-            fetchAndUpdateDashboard();
+            // Start the long-polling mechanism
+            (function longPollCounts() {
+                if (isManualUpdateActive) {
+                    console.log("Auto-update paused due to manual edit.");
+                    // If manual update is active, wait a bit before trying again
+                    setTimeout(longPollCounts, 1000); 
+                    return;
+                }
+                $.ajax({
+                    url: "/get_counts",
+                    method: "GET",
+                    success: function (data) {
+                        updateUI(data);
+                    },
+                    error: function (xhr, status, error) {
+                        console.log("Error fetching counts:", status, error);
+                    },
+                    complete: function () {
+                        // Always make another request after the current one completes
+                        longPollCounts();
+                    }
+                });
+            })();
 
             // Notification logic
             function showNotification(message) {
@@ -1058,7 +1078,7 @@
                         hour12: true 
                     };
                     const formattedDateTime = date.toLocaleString('en-US', options);
-                    showNotification(`Initial Count last loaded from ${formattedDateTime}. Please update the counter if the system was down.`);
+                    showNotification(`Count last loaded from ${formattedDateTime}. Please update the counter if the system was down.`);
                 },
                 error: function () {
                     console.log("Error fetching initial counts for notification");

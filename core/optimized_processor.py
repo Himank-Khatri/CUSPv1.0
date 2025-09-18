@@ -69,6 +69,7 @@ class OptimizedParkingProcessor:
         self.frame_skip_counter = 0
         self.last_successful_frame_time = time.time()
         self.processing_lock = threading.RLock()
+        self._counts_updated_event = threading.Event() # Event to signal count updates
         
         self.performance_stats = {
             'fps': 0,
@@ -90,8 +91,8 @@ class OptimizedParkingProcessor:
         """
         if not os.path.exists(self.counter_file_path):
             default_counts = {
-                "bikes": {"free": 0, "total": 0},
-                "cars": {"free": 0, "total": 0},
+                "bikes": {"free": 0, "total": 500},
+                "cars": {"free": 0, "total": 32},
                 "last_updated": datetime.now().isoformat()
             }
             with open(self.counter_file_path, 'w') as f:
@@ -135,10 +136,13 @@ class OptimizedParkingProcessor:
                 "last_updated": datetime.now().isoformat()
             }
             try:
-                with open(self.counter_file_path, 'w') as f:
+                temp_file_path = self.counter_file_path + ".tmp"
+                with open(temp_file_path, 'w') as f:
                     json.dump(data, f, indent=2)
+                os.replace(temp_file_path, self.counter_file_path) # Atomic replace
                 self.last_updated = data["last_updated"]
                 logger.debug(f"Saved counts to {self.counter_file_path}")
+                self._counts_updated_event.set() # Signal that counts have been updated
             except Exception as e:
                 logger.error(f"Error saving counts to {self.counter_file_path}: {e}")
     
@@ -459,7 +463,7 @@ class OptimizedParkingProcessor:
                 
                 self._save_counts_to_file()
 
-            except (TypeError, ValueError) as e:
+            except (TypeError, ValueError)  as e:
                 logger.error(f"Invalid data format for manual count update: {e}")
                 
     
@@ -563,22 +567,22 @@ class OptimizedParkingProcessor:
         # Draw midline
         cv2.line(frame, (0, midline), (frame_width, midline), (255, 0, 0), 2)
         
-        # Draw tracking boxes and vehicle information
-        for track_id, track_info in self.track_history.items():
-            if len(track_info) > 0:
-                # Get the latest position
-                latest_y = track_info[-1]
-                latest_x = frame_width // 2  # Approximate x position
+        # # Draw tracking boxes and vehicle information
+        # for track_id, track_info in self.track_history.items():
+        #     if len(track_info) > 0:
+        #         # Get the latest position
+        #         latest_y = track_info[-1]
+        #         latest_x = frame_width // 2  # Approximate x position
                 
-                # Draw tracking point
-                cv2.circle(frame, (latest_x, latest_y), 5, (0, 255, 255), -1)
+        #         # Draw tracking point
+        #         cv2.circle(frame, (latest_x, latest_y), 5, (0, 255, 255), -1)
                 
-                # Draw vehicle ID and class
-                vehicle_class = self.track_class_labels.get(track_id, "Unknown")
-                direction = self.vehicle_directions.get(track_id, "Unknown")
-                text = f"ID:{track_id} C:{vehicle_class} D:{direction}"
-                cv2.putText(frame, text, (latest_x + 10, latest_y - 10), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+        #         # Draw vehicle ID and class
+        #         vehicle_class = self.track_class_labels.get(track_id, "Unknown")
+        #         direction = self.vehicle_directions.get(track_id, "Unknown")
+        #         text = f"ID:{track_id} C:{vehicle_class} D:{direction}"
+        #         cv2.putText(frame, text, (latest_x + 10, latest_y - 10), 
+        #                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
         
         # Draw counts
         cv2.putText(frame, f"Cars: {self.car_total_count - self.car_free_count}/{self.car_total_count}", (10, 30), 
@@ -669,6 +673,7 @@ class OptimizedParkingProcessor:
             self.bike_free_count = self.bike_total_count
             self.crossed_vehicles.clear()
             self._save_counts_to_file()
+            self._counts_updated_event.set() # Signal that counts have been updated
         logger.info("Vehicle counts reset")
     
     def cleanup(self):
